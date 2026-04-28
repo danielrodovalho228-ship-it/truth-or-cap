@@ -1,0 +1,19 @@
+modules = ["nodejs-20"]
+run = "npm run dev"
+
+[deployment]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
+run = ["npm", "run", "start"]
+
+[[ports]]
+localPort = 3000
+externalPort = 80
+
+[env]
+NODE_ENV = "production"
+PORT = "3000"
+HOST = "0.0.0.0"
+
+[nix]
+channel = "stable-24_05"
