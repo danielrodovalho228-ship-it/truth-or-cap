@@ -12,14 +12,20 @@ interface ShareSheetProps {
   url: string;
 }
 
+type NavigatorWithShare = Navigator & {
+  share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
+};
+
 export function ShareSheet({ username, question, susLevel, url }: ShareSheetProps) {
   const [copied, setCopied] = useState(false);
   const text = buildShareText({ username, question, susLevel, url });
 
   const tryNative = async () => {
-    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    if (typeof window === 'undefined') return;
+    const nav = window.navigator as NavigatorWithShare;
+    if (typeof nav.share === 'function') {
       try {
-        await navigator.share({ title: 'Truth or Cap', text, url });
+        await nav.share({ title: 'Truth or Cap', text, url });
       } catch {
         /* user cancelled */
       }
@@ -30,9 +36,13 @@ export function ShareSheet({ username, question, susLevel, url }: ShareSheetProp
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(`${text}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      if (typeof window === 'undefined') return;
+      const nav = window.navigator;
+      if (nav.clipboard && typeof nav.clipboard.writeText === 'function') {
+        await nav.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      }
     } catch {
       /* clipboard blocked */
     }
@@ -46,7 +56,7 @@ export function ShareSheet({ username, question, susLevel, url }: ShareSheetProp
       className="sticky bottom-0 left-0 right-0 z-30 px-5 pt-3 pb-5 bg-bg/95 backdrop-blur-sm border-t-2 border-fg"
     >
       <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted mb-3 text-center">
-        Send to people who&apos;ll roast you
+        Send to people who will roast you
       </p>
       <div className="grid grid-cols-4 gap-2 max-w-md mx-auto">
         <ShareButton onClick={tryNative} icon={<Share2 className="w-4 h-4" />} label="Share" />

@@ -13,7 +13,6 @@ interface CuriosityRevealProps {
 
 const TARGET = 3;
 
-/** Locked feature card shown after first game on result page (M07). */
 export function CuriosityReveal({ gameId, alreadySent }: CuriosityRevealProps) {
   const [count, setCount] = useState(alreadySent);
   const [error, setError] = useState<string | null>(null);
@@ -29,10 +28,12 @@ export function CuriosityReveal({ gameId, alreadySent }: CuriosityRevealProps) {
           channel: 'native_share',
           sourceGameId: gameId,
         });
-        if (typeof navigator !== 'undefined' && 'share' in navigator) {
-          await navigator.share({ text: message, url });
-        } else {
-          await navigator.clipboard.writeText(message);
+        if (typeof window === 'undefined') return;
+        const nav = window.navigator as Navigator & { share?: (data: { text: string; url: string; title?: string }) => Promise<void> };
+        if (typeof nav.share === 'function') {
+          await nav.share({ text: message, url });
+        } else if (nav.clipboard && typeof nav.clipboard.writeText === 'function') {
+          await nav.clipboard.writeText(message);
         }
         setCount((n) => n + 1);
       } catch (err) {
@@ -61,7 +62,7 @@ export function CuriosityReveal({ gameId, alreadySent }: CuriosityRevealProps) {
         {remaining === 0
           ? 'Unlocked! Refresh to see your map'
           : pending
-          ? 'Sharing…'
+          ? 'Sharing...'
           : `Invite friend (${count}/${TARGET})`}
       </Button>
       {error ? (

@@ -1,5 +1,7 @@
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+type CookieEntry = { name: string; value: string; options?: CookieOptions };
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -12,9 +14,9 @@ export async function createClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: CookieEntry[]) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
+            cookiesToSet.forEach(({ name, value, options }: CookieEntry) =>
               cookieStore.set(name, value, options)
             );
           } catch {
@@ -28,7 +30,7 @@ export async function createClient() {
 }
 
 /**
- * Service role client — bypasses RLS. Use ONLY in trusted server contexts
+ * Service role client - bypasses RLS. Use ONLY in trusted server contexts
  * (API routes, server actions) and NEVER expose to client.
  */
 export function createServiceRoleClient() {
