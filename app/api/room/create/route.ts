@@ -29,9 +29,21 @@ export async function POST(req: NextRequest) {
   if (!['mild','spicy'].includes(spice)) {
     return NextResponse.json({ error: 'Invalid spice' }, { status: 400 });
   }
+
+  // Spicy gate: check profile.is_premium. Schema currently has no is_premium
+  // column, so default to denied unless an env override is set for testing.
   if (spice === 'spicy') {
-    // TODO: paywall check via profiles.is_premium
-    return NextResponse.json({ error: 'Spicy pack requires Premium' }, { status: 403 });
+    const admin = createServiceRoleClient();
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('is_premium')
+      .eq('id', user.id)
+      .maybeSingle();
+    const allowed = (profile as { is_premium?: boolean } | null)?.is_premium === true
+      || process.env.ALLOW_SPICY_FOR_ALL === '1';
+    if (!allowed) {
+      return NextResponse.json({ error: 'Spicy pack requires Premium' }, { status: 403 });
+    }
   }
 
   const admin = createServiceRoleClient();
