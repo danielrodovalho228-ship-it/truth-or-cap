@@ -2,7 +2,6 @@ import { ImageResponse } from 'next/og';
 import { createServiceRoleClient } from '@/lib/supabase/server';
 
 export const runtime = 'edge';
-export const contentType = 'image/png';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
