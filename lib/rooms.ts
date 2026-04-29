@@ -13,6 +13,7 @@ export interface Room {
   status: RoomStatus;
   current_round: number;
   max_rounds: number;
+  max_players: number;
   locale: string;
   created_at: string;
   finished_at: string | null;
@@ -45,7 +46,16 @@ export interface RoomRound {
   revealed_at: string | null;
 }
 
-// Friendly room code: 6 chars, alphabet without ambiguous letters (no 0/O/1/I/L).
+export interface RoundVote {
+  id: string;
+  round_id: string;
+  voter_player_id: string;
+  vote: 'truth' | 'cap';
+  created_at: string;
+}
+
+export const DEFAULT_MAX_PLAYERS = 10;
+
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function generateRoomCode(length = 6): string {
   let out = '';
@@ -53,6 +63,15 @@ function generateRoomCode(length = 6): string {
     out += ROOM_CODE_ALPHABET[Math.floor(Math.random() * ROOM_CODE_ALPHABET.length)];
   }
   return out;
+}
+
+async function activePlayerCount(supabase: SupabaseClient, roomId: string): Promise<number> {
+  const { count } = await supabase
+    .from('room_players')
+    .select('id', { count: 'exact', head: true })
+    .eq('room_id', roomId)
+    .is('left_at', null);
+  return count ?? 0;
 }
 
 export async function createRoom(
@@ -64,10 +83,10 @@ export async function createRoom(
     spice: RoomSpice;
     locale: string;
     maxRounds?: number;
+    maxPlayers?: number;
   }
 ): Promise<{ room: Room; player: RoomPlayer }> {
   let code = generateRoomCode();
-  // Retry on collision (very rare with 6 chars from 31-letter alphabet).
   for (let i = 0; i < 5; i++) {
     const { count } = await supabase
       .from('rooms')
@@ -86,6 +105,7 @@ export async function createRoom(
       spice: params.spice,
       locale: params.locale,
       max_rounds: params.maxRounds ?? 5,
+      max_players: Math.min(params.maxPlayers ?? DEFAULT_MAX_PLAYERS, DEFAULT_MAX_PLAYERS),
     })
     .select()
     .single();
@@ -127,7 +147,6 @@ export async function joinRoom(
   if (roomErr || !room) throw new Error('Room not found');
   if (room.status === 'finished') throw new Error('This room has ended');
 
-  // If user already in this room, return existing player record.
   if (params.userId) {
     const { data: existing } = await supabase
       .from('room_players')
@@ -136,6 +155,11 @@ export async function joinRoom(
       .eq('user_id', params.userId)
       .maybeSingle();
     if (existing) return { room, player: existing };
+  }
+
+  const count = await activePlayerCount(supabase, room.id);
+  if (count >= (room.max_players ?? DEFAULT_MAX_PLAYERS)) {
+    throw new Error('Room is full');
   }
 
   const { data: player, error: playerErr } = await supabase
@@ -167,7 +191,6 @@ export async function pickRandomQuestion(
     .eq('spice', spice)
     .eq('locale', locale);
   if (!data || data.length === 0) {
-    // Fallback to EN mild if requested locale/spice has no entries.
     const { data: fallback } = await supabase
       .from('question_packs')
       .select('question')
