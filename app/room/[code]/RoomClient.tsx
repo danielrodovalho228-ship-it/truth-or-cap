@@ -60,14 +60,17 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'round_votes' }, (payload) => {
         const v = payload.new as RoundVote;
-        if (round && v.round_id === round.id) {
-          setVotes((prev) => prev.some(x => x.id === v.id) ? prev : [...prev, v]);
-        }
+        // Compare against latest round via state setter (avoid stale closure).
+        setVotes((prev) => {
+          // We don't know the round id here without state; let downstream filter.
+          if (prev.some(x => x.id === v.id)) return prev;
+          return [...prev, v];
+        });
       })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [supabase, room.id, round?.id]);
+  }, [supabase, room.id]);
 
   // When a round becomes active, fetch its existing votes (in case we joined late).
   useEffect(() => {
@@ -348,7 +351,16 @@ function PrompterRecorder({ roundId }: { roundId: string }) {
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
       chunksRef.current = [];
-      const mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+      const candidates = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+        'video/mp4;codecs=h264,aac',
+        'video/mp4',
+      ];
+      const supported = candidates.find((m) => typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(m)) || '';
+      const mimeType = supported || candidates[0];
+      const mr = new MediaRecorder(stream, supported ? { mimeType } : undefined);
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mr.onstop = handleStop;
       mediaRecorderRef.current = mr;
@@ -374,20 +386,23 @@ function PrompterRecorder({ roundId }: { roundId: string }) {
   };
 
   const handleStop = async () => {
-    const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-    const path = `rooms/${roundId}-${Date.now()}.webm`;
+    const recordedMime = mediaRecorderRef.current?.mimeType || 'video/webm';
+    const isMp4 = recordedMime.includes('mp4');
+    const blob = new Blob(chunksRef.current, { type: recordedMime });
+    const ext = isMp4 ? 'mp4' : 'webm';
+    const path = `rooms/${roundId}-${Date.now()}.${ext}`;
     try {
       const initRes = await fetch('/api/recording/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path, contentType: 'video/webm' }),
+        body: JSON.stringify({ path, contentType: recordedMime }),
       });
       const init = await initRes.json();
       if (!initRes.ok) throw new Error(init.error ?? 'Init failed');
 
       const put = await fetch(init.signedUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': 'video/webm' },
+        headers: { 'Content-Type': recordedMime },
         body: blob,
       });
       if (!put.ok) throw new Error('Upload failed');
