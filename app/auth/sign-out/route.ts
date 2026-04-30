@@ -7,9 +7,9 @@ export async function POST(request: NextRequest) {
   return NextResponse.redirect(new URL('/', request.url), { status: 303 });
 }
 
-// Allow GET as a convenience (e.g. <a href="/auth/sign-out">) — POST is preferred.
+// GET is intentionally NOT supported. A GET sign-out endpoint can be
+// triggered by browser prefetch, link scanners, or extensions and silently
+// log the user out. Sign-out must be an explicit POST.
 export async function GET(request: NextRequest) {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  return NextResponse.redirect(new URL('/', request.url), { status: 303 });
+  return NextResponse.redirect(new URL('/settings', request.url), { status: 303 });
 }

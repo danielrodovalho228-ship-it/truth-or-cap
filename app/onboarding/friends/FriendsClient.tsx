@@ -17,7 +17,11 @@ import {
 
 type Phase = 'intro' | 'matching' | 'matched' | 'manual' | 'no-matches';
 
-export function FriendsClient() {
+interface FriendsClientProps {
+  redirectTo?: string;
+}
+
+export function FriendsClient({ redirectTo = '/onboarding/done' }: FriendsClientProps = {}) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('intro');
   const [friends, setFriends] = useState<MatchedFriend[]>([]);
@@ -82,7 +86,7 @@ export function FriendsClient() {
   const finish = () => {
     const ids = Array.from(selected);
     if (ids.length === 0) {
-      router.push('/onboarding/done');
+      router.push(redirectTo);
       return;
     }
     startTransition(async () => {
@@ -95,7 +99,7 @@ export function FriendsClient() {
       } catch (err) {
         console.error('[friends] bulk add', err);
       }
-      router.push('/onboarding/done');
+      router.push(redirectTo);
     });
   };
 
@@ -200,7 +204,7 @@ export function FriendsClient() {
           <p className="font-body text-base text-fg-muted leading-relaxed mb-6 max-w-xs">
             Be the first in your circle. The squad detector unlocks at 5 friends.
           </p>
-          <Button onClick={() => router.push('/onboarding/done')} size="lg" fullWidth>
+          <Button onClick={() => router.push(redirectTo)} size="lg" fullWidth>
             Continue →
           </Button>
         </div>

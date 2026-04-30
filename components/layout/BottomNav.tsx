@@ -15,15 +15,15 @@ interface NavItem {
 const ITEMS: NavItem[] = [
   { href: '/home', label: 'Home', icon: Home, match: (p) => p === '/home' || p === '/' },
   { href: '/challenge', label: 'Daily', icon: Calendar, match: (p) => p.startsWith('/challenge') || p.startsWith('/qotd') },
-  { href: '/jogo/select', label: 'Detector', icon: Mic, match: (p) => p.startsWith('/jogo') },
-  { href: '/amigos', label: 'Friends', icon: Users, match: (p) => p.startsWith('/amigos') || p === '/leaderboard' },
+  { href: '/game/select', label: 'Detector', icon: Mic, match: (p) => p.startsWith('/game') },
+  { href: '/friends', label: 'Friends', icon: Users, match: (p) => p.startsWith('/friends') || p === '/leaderboard' },
   { href: '/settings', label: 'Profile', icon: User, match: (p) => p.startsWith('/settings') || p.startsWith('/perfil') },
 ];
 
 const HIDDEN_ROUTES = [
   '/auth',
   '/onboarding',
-  '/jogo/novo', // recorder takes full screen
+  '/game/new', // recorder takes full screen
   '/i/',
   '/terms',
   '/privacy',

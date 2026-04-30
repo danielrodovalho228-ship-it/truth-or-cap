@@ -1,10 +1,15 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function HomePage() {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   const user = data.user;
+
+  if (user) {
+    redirect('/home');
+  }
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -44,14 +49,14 @@ export default async function HomePage() {
         {user ? (
           <div className="flex flex-col gap-2 w-full max-w-xs">
             <Link
-              href="/jogo/select"
+              href="/game/select"
               className="border-2 border-fg bg-fg text-bg px-8 py-4 font-display text-2xl font-black uppercase tracking-tight hover:bg-bg hover:text-fg transition-colors text-center"
             >
               + New game
             </Link>
             <div className="grid grid-cols-3 gap-2 mt-2">
               <Link href="/home" className="border-2 border-line hover:border-fg py-2 text-center font-mono text-[10px] tracking-widest uppercase">Feed</Link>
-              <Link href="/amigos" className="border-2 border-line hover:border-fg py-2 text-center font-mono text-[10px] tracking-widest uppercase">Friends</Link>
+              <Link href="/friends" className="border-2 border-line hover:border-fg py-2 text-center font-mono text-[10px] tracking-widest uppercase">Friends</Link>
               <Link href="/leaderboard" className="border-2 border-line hover:border-fg py-2 text-center font-mono text-[10px] tracking-widest uppercase">Rank</Link>
             </div>
             <Link

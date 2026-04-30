@@ -4,7 +4,7 @@ import { getGameType, pickQuestionFor, type GameType } from '@/lib/game-types';
 import { NewGameClient } from './NewGameClient';
 
 // =============================================================================
-// /jogo/novo — entry point for recording a new game.
+// /game/new — entry point for recording a new game.
 //
 // Accepts query params:
 //   ?type=<game_type>         which game format to load (classic, two_truths_one_lie, ...)
@@ -34,7 +34,7 @@ interface PageProps {
 }
 
 export default async function NewGamePage({ searchParams }: PageProps) {
-  await requireProfile('/jogo/novo');
+  await requireProfile('/game/new');
   const params = await searchParams;
 
   const gameType = getGameType(params.type);

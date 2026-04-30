@@ -96,7 +96,7 @@ export function InviteRedeemer({ code, context, sourceGameId, inviter, expired }
 
         {sourceGameId ? (
           <Link
-            href={`/jogo/${sourceGameId}`}
+            href={`/game/${sourceGameId}`}
             className="block mt-4 font-mono text-[10px] tracking-widest uppercase text-fg-muted hover:text-fg"
           >
             Watch their game first

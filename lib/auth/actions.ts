@@ -111,6 +111,7 @@ export async function signInWithMagicLink(_prev: unknown, formData: FormData): P
 export async function signInWithPassword(_prev: unknown, formData: FormData): Promise<ActionResult> {
   const emailRaw = (formData.get('email') as string) ?? '';
   const password = (formData.get('password') as string) ?? '';
+  const nextRaw = ((formData.get('next') as string) || '').trim();
 
   const emailCheck = validateEmail(emailRaw);
   if (!emailCheck.ok) return { ok: false, error: emailCheck.error };
@@ -127,8 +128,9 @@ export async function signInWithPassword(_prev: unknown, formData: FormData): Pr
     return { ok: false, error: 'Wrong email or password' };
   }
 
+  const safeNext = nextRaw.startsWith('/') ? nextRaw : '/home';
   revalidatePath('/', 'layout');
-  redirect('/');
+  redirect(safeNext);
 }
 
 /**

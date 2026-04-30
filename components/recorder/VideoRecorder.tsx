@@ -204,7 +204,7 @@ export function VideoRecorder({
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
 
-      router.push(`/jogo/${gameId}/processing`);
+      router.push(`/game/${gameId}/processing`);
     } catch (err) {
       console.error('[recorder] submit failed:', err);
       setState((s) => ({

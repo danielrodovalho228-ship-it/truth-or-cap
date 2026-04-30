@@ -9,7 +9,7 @@ interface PageProps {
 
 export default async function ProcessingPage({ params }: PageProps) {
   const { id } = await params;
-  const user = await requireUser(`/jogo/${id}/processing`);
+  const user = await requireUser(`/game/${id}/processing`);
 
   const supabase = await createClient();
   const { data: game } = await supabase
@@ -20,7 +20,7 @@ export default async function ProcessingPage({ params }: PageProps) {
 
   if (!game) notFound();
   // Only the owner can sit on the processing screen — viewers go straight
-  // to /jogo/[id] which gates on viewState.
+  // to /game/[id] which gates on viewState.
   if (game.player_id !== user.id) notFound();
 
   return <ProcessingClient gameId={game.id} question={game.question} />;

@@ -16,7 +16,7 @@ interface PlayCTAProps {
  *  This is the K-factor amplifier — pre-fill a question + opponent context. */
 export function PlayCTA({ opponentUsername, opponentSusLevel, fromGameId }: PlayCTAProps) {
   const question = pickRandomQuestion();
-  const href = `/jogo/novo?question=${encodeURIComponent(question)}&from=${fromGameId}&opponent=${encodeURIComponent(opponentUsername)}`;
+  const href = `/game/new?question=${encodeURIComponent(question)}&from=${fromGameId}&opponent=${encodeURIComponent(opponentUsername)}`;
   const verdict = opponentSusLevel >= 70 ? 'BUSTED' : opponentSusLevel < 40 ? 'CONVINCED THE AI' : 'ON THE FENCE';
 
   return (

@@ -56,7 +56,7 @@ export function ProcessingClient({ gameId, question }: ProcessingClientProps) {
         return;
       }
       if (data?.id) {
-        router.replace(`/jogo/${gameId}`);
+        router.replace(`/game/${gameId}`);
       }
     };
 

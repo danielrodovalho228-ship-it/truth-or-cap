@@ -20,7 +20,7 @@ export default async function SelectGamePage({
 }: {
   searchParams: Promise<{ audience?: string }>;
 }) {
-  await requireUser('/jogo/select');
+  await requireUser('/game/select');
   const params = await searchParams;
   const selected = (params.audience as Audience | undefined) ?? 'friends';
 
@@ -55,7 +55,7 @@ export default async function SelectGamePage({
           {AUDIENCES.map((a) => (
             <Link
               key={a.id}
-              href={`/jogo/select?audience=${a.id}`}
+              href={`/game/select?audience=${a.id}`}
               className={`border-2 py-3 px-2 text-center transition-colors ${
                 selected === a.id
                   ? 'border-fg bg-fg text-bg'
@@ -75,7 +75,7 @@ export default async function SelectGamePage({
           {visibleTypes.map((t) => (
             <li key={t.id}>
               <Link
-                href={`/jogo/novo?type=${t.id}&audience=${selected}`}
+                href={`/game/new?type=${t.id}&audience=${selected}`}
                 className="block border-2 border-line hover:border-fg p-5 transition-colors"
               >
                 <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-2">

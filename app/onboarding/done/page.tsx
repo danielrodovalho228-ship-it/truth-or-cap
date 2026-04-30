@@ -22,7 +22,7 @@ export default async function DonePage() {
         Pick a question, hit record, send to friends. The AI has 30 seconds to call your bluff.
       </p>
 
-      <Link href="/jogo/novo" className="w-full max-w-xs">
+      <Link href="/game/new" className="w-full max-w-xs">
         <Button size="xl" fullWidth>
           Record first game →
         </Button>

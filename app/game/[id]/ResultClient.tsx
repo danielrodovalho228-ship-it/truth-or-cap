@@ -51,7 +51,7 @@ export function ResultClient({
 
   // Resolve share URL after mount so SSR markup matches CSR (no
   // hydration warning from `window.location.href` at render time).
-  const fallbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/jogo/${game.id}`;
+  const fallbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/game/${game.id}`;
   const [shareUrl, setShareUrl] = useState(fallbackUrl);
   useEffect(() => {
     if (typeof window !== 'undefined') {

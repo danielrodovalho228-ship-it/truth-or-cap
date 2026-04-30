@@ -34,7 +34,15 @@ export default async function SettingsPage() {
           <SettingsLink href="/settings/privacy" title="Privacy" subtitle="Public profile, contacts, data" />
           <SettingsLink href="/settings/notifications" title="Notifications" subtitle="Push prefs (coming soon)" />
           <SettingsLink href="/settings/delete" title="Delete account" subtitle="Cascade delete + LGPD/GDPR" tone="warn" />
-          <SettingsLink href="/auth/sign-out" title="Sign out" subtitle="Clear session" />
+          <form action="/auth/sign-out" method="post">
+            <button
+              type="submit"
+              className="block w-full text-left border-2 border-line hover:border-fg p-3 transition-colors"
+            >
+              <p className="font-display text-base font-black uppercase tracking-tight">Sign out</p>
+              <p className="font-mono text-[10px] tracking-widest uppercase opacity-70 mt-0.5">Clear session</p>
+            </button>
+          </form>
         </div>
 
         <div className="mt-10 pt-6 border-t-2 border-line">

@@ -26,6 +26,11 @@ export default async function SignInPage({
       : `/auth/sign-in${next !== '/' ? `?next=${encodeURIComponent(next)}` : ''}`;
   const otherLabel = mode === 'magic' ? 'Use password instead' : 'Use magic link instead';
 
+  const subtitle =
+    mode === 'magic'
+      ? "Drop your email. We’ll send a magic link — clicking it logs you in."
+      : 'Email and password. Same account either way.';
+
   return (
     <AuthCard
       step="WELCOME BACK"
@@ -35,7 +40,7 @@ export default async function SignInPage({
           <span className="italic font-light">where you left.</span>
         </>
       }
-      subtitle="Drop your email. We&apos;ll send a magic link — clicking it logs you in."
+      subtitle={subtitle}
       footer={
         <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted text-center">
           New here?{' '}
@@ -54,7 +59,7 @@ export default async function SignInPage({
         </p>
       ) : null}
 
-      {mode === 'magic' ? <MagicLinkForm mode="sign-in" next={next} /> : <PasswordForm mode="sign-in" />}
+      {mode === 'magic' ? <MagicLinkForm mode="sign-in" next={next} /> : <PasswordForm mode="sign-in" next={next} />}
 
       <p className="text-center">
         <Link

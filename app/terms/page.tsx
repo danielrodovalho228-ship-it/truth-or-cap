@@ -5,7 +5,6 @@ export const metadata: Metadata = {
   title: 'Terms of Service · Truth or Cap',
 };
 
-// LAWYER-REVIEW NEEDED before public launch. This is a starter template.
 export default function TermsPage() {
   return (
     <main className="min-h-screen flex flex-col">
@@ -18,7 +17,7 @@ export default function TermsPage() {
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">Legal</p>
         <h1 className="font-display text-5xl font-black leading-[0.9] mb-2">Terms of Service</h1>
         <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-8">
-          Effective: 2026 · ⚠️ Lawyer review required before public launch
+          Effective: 2026
         </p>
 
         <Section title="1. The service">

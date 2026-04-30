@@ -101,7 +101,7 @@ export default async function ChallengePage() {
               Today&apos;s challenge
             </p>
             <p className="font-display text-xl leading-snug mb-4">&ldquo;{challenge.challenge}&rdquo;</p>
-            <Link href={`/jogo/novo?question=${encodeURIComponent(challenge.challenge)}`}>
+            <Link href={`/game/new?question=${encodeURIComponent(challenge.challenge)}`}>
               <Button size="lg" fullWidth>
                 Record my answer →
               </Button>

@@ -39,7 +39,7 @@ export default async function HomePage() {
           <Link href="/" className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg">
             ← truthorcap
           </Link>
-          <Link href="/jogo/select">
+          <Link href="/game/select">
             <Button size="sm">+ New game</Button>
           </Link>
         </header>
@@ -54,7 +54,7 @@ export default async function HomePage() {
           <ul className="space-y-2">
             {feed!.map((g) => (
               <li key={g.id}>
-                <Link href={`/jogo/${g.id}`} className="block border-2 border-line hover:border-fg p-4 transition-colors">
+                <Link href={`/game/${g.id}`} className="block border-2 border-line hover:border-fg p-4 transition-colors">
                   <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-2">
                     @{g.player_username} · {new Date(g.created_at).toLocaleString()}
                   </p>
@@ -78,8 +78,8 @@ export default async function HomePage() {
               Add friends to see their plays here. Or record your own to start.
             </p>
             <div className="flex flex-col gap-2">
-              <Link href="/jogo/select"><Button size="md" fullWidth>Record a game</Button></Link>
-              <Link href="/onboarding/friends"><Button variant="secondary" size="md" fullWidth>Find friends</Button></Link>
+              <Link href="/game/select"><Button size="md" fullWidth>Record a game</Button></Link>
+              <Link href="/friends/find"><Button variant="secondary" size="md" fullWidth>Find friends</Button></Link>
             </div>
           </div>
         )}

@@ -7,7 +7,7 @@ import { ResultClient } from './ResultClient';
 import type { AnalysisReason, Vote } from '@/lib/types';
 
 // =============================================================================
-// /jogo/[id] — public game result page.
+// /game/[id] — public game result page.
 //
 // Server component. Pulls the game + analysis + initial vote counts in one
 // burst, decides the viewer's view state (OWNER / FIRST_VISITOR / RETURNING),
@@ -44,13 +44,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title,
       description,
       type: 'article',
-      images: [{ url: `/jogo/${id}/opengraph-image`, width: 1200, height: 630 }],
+      images: [{ url: `/game/${id}/opengraph-image`, width: 1200, height: 630 }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: [`/jogo/${id}/opengraph-image`],
+      images: [`/game/${id}/opengraph-image`],
     },
   };
 }

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function FriendsPage() {
-  const user = await requireUser('/amigos');
+  const user = await requireUser('/friends');
   const supabase = await createClient();
 
   const { data: friendIds } = await supabase
@@ -77,7 +77,7 @@ export default async function FriendsPage() {
             <p className="font-body text-sm text-fg-muted mb-4 leading-snug">
               Be the first in your circle. Invite 5 to unlock the leaderboard.
             </p>
-            <Link href="/onboarding/friends">
+            <Link href="/friends/find">
               <span className="border-2 border-fg bg-fg text-bg px-5 py-3 font-display text-base font-black uppercase inline-block">
                 Find friends
               </span>
