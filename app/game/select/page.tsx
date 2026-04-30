@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { Radio } from 'lucide-react';
 import { requireUser } from '@/lib/auth/guard';
 import { ALL_GAME_TYPES, type Audience } from '@/lib/game-types';
 
@@ -69,6 +70,24 @@ export default async function SelectGamePage({
             </Link>
           ))}
         </div>
+
+        <Link
+          href="/online"
+          className="block border-2 border-mustard bg-mustard text-bg p-4 mb-3 hover:bg-bg hover:text-mustard transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Radio className="w-5 h-5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-mono text-[10px] tracking-[0.4em] uppercase opacity-70">
+                Live · up to 10 phones
+              </p>
+              <p className="font-display text-xl font-black leading-tight">
+                Play online — multiplayer
+              </p>
+            </div>
+            <span className="font-display font-black text-2xl leading-none">→</span>
+          </div>
+        </Link>
 
         {/* Game cards */}
         <ul className="space-y-3">
