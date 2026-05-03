@@ -10,6 +10,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <input
         ref={ref}
+        aria-invalid={invalid || undefined}
         className={cn(
           'w-full bg-transparent border-2 border-line text-fg',
           'font-body text-base px-4 h-14 min-h-[56px]',

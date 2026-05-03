@@ -39,7 +39,7 @@ export default async function LeaderboardPage() {
     : -1;
 
   return (
-    <main className="min-h-screen flex flex-col">
+    <main className="min-h-screen flex flex-col pb-24">
       <div className="tape-stripes h-3 w-full" />
       <div className="flex-1 px-6 py-8 max-w-md mx-auto w-full">
         <Link

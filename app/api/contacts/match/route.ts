@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { rateLimit, HOUR_MS } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -28,7 +29,20 @@ export async function POST(req: NextRequest) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data, error } = await supabase
+  // Rate limit: 4 calls/hour per user. Friend matcher is rare; high cap is abuse.
+  const rl = rateLimit('contacts:' + auth.user.id, 4, HOUR_MS);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many match requests. Try again in ' + Math.ceil(rl.resetIn / 60000) + ' minutes.' },
+      { status: 429 },
+    );
+  }
+
+  // Use service role: phone_hash column SELECT is revoked from authenticated
+  // role (migration 0018) to prevent rainbow-table deanon. Service role
+  // bypasses column privileges.
+  const admin = createServiceRoleClient();
+  const { data, error } = await admin
     .from('profiles')
     .select('id, username, avatar_url, phone_hash')
     .in('phone_hash', parsed.data.hashes)

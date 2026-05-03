@@ -491,7 +491,14 @@ function PrompterRecorder({ roundId, playerId }: { roundId: string; playerId: st
         'video/mp4;codecs=h264,aac',
         'video/mp4',
       ];
-    if (typeof MediaRecorder === 'undefined') { setError('Your browser does not support recording. Update or try desktop.'); return; }
+    if (typeof MediaRecorder === 'undefined') {
+      // Clean up stream — getUserMedia already started capture, camera light is on.
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
+      setError('Your browser doesn\'t support recording. Try Chrome on Android or Safari iOS 14.5+.');
+      return;
+    }
       const supported = candidates.find((m) => typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(m)) || '';
       const mimeType = supported || candidates[0];
       const mr = new MediaRecorder(stream, supported ? { mimeType } : undefined);
@@ -506,6 +513,10 @@ function PrompterRecorder({ roundId, playerId }: { roundId: string; playerId: st
         return s + 1;
       }), 1000);
     } catch (e) {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
       setError(e instanceof Error ? e.message : 'Mic/camera blocked');
     }
   };

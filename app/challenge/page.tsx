@@ -92,7 +92,14 @@ export default async function ChallengePage() {
               </div>
             </div>
           </section>
-        ) : null}
+        ) : (
+          <section className="border-2 border-line p-5 mb-5">
+            <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-2">
+              Question of the day
+            </p>
+            <p className="font-body text-fg-muted">No question yet — back tomorrow at 00:00 UTC.</p>
+          </section>
+        )}
 
         {/* Today's challenge */}
         {challenge ? (
