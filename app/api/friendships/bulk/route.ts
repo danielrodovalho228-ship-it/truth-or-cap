@@ -10,6 +10,19 @@ const Schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // CSRF defense: only same-origin POST
+  const origin = req.headers.get('origin');
+  const host = req.headers.get('host');
+  if (origin) {
+    try {
+      if (new URL(origin).host !== host) {
+        return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
+      }
+    } catch {
+      return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
+    }
+  }
+
   let body: unknown;
   try {
     body = await req.json();

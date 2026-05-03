@@ -6,6 +6,19 @@ import { cookies } from 'next/headers';
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  // CSRF defense: only same-origin POST
+  const origin = req.headers.get('origin');
+  const host = req.headers.get('host');
+  if (origin) {
+    try {
+      if (new URL(origin).host !== host) {
+        return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
+      }
+    } catch {
+      return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
+    }
+  }
+
   let body: { roundId?: string; voterPlayerId?: string; vote?: 'truth' | 'cap' };
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
   const { roundId, voterPlayerId, vote } = body;

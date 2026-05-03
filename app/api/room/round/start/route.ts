@@ -5,6 +5,19 @@ import { startNextRound } from '@/lib/rooms';
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
+  // CSRF defense: only same-origin POST
+  const origin = req.headers.get('origin');
+  const host = req.headers.get('host');
+  if (origin) {
+    try {
+      if (new URL(origin).host !== host) {
+        return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
+      }
+    } catch {
+      return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
+    }
+  }
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

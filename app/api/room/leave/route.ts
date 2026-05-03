@@ -9,6 +9,19 @@ export const runtime = 'nodejs';
 // reveal logic + capacity trigger see them as gone. Authenticated by either
 // session.user_id matching room_players.user_id, OR by HMAC playerToken cookie.
 export async function POST(req: NextRequest) {
+  // CSRF defense: only same-origin POST
+  const origin = req.headers.get('origin');
+  const host = req.headers.get('host');
+  if (origin) {
+    try {
+      if (new URL(origin).host !== host) {
+        return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
+      }
+    } catch {
+      return NextResponse.json({ error: 'Bad origin' }, { status: 403 });
+    }
+  }
+
   let body: { roomId?: string; playerId?: string };
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
   const { roomId, playerId } = body;

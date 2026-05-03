@@ -85,6 +85,6 @@ export async function POST(req: NextRequest) {
 
 function voteCookieHeader(gameId: string): Record<string, string> {
   return {
-    'Set-Cookie': `voted_${gameId}=1; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`,
+    'Set-Cookie': `voted_${gameId}=1; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax; HttpOnly${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`,
   };
 }
