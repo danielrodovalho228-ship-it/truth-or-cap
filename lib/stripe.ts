@@ -2,8 +2,11 @@ import Stripe from 'stripe';
 
 const SECRET = process.env.STRIPE_SECRET_KEY;
 
+// Use SDK's default apiVersion to avoid type/runtime mismatches when the SDK
+// is updated. Stripe pinning is best done via dependency upgrade, not
+// hardcoded version strings here.
 export const stripe = SECRET
-  ? new Stripe(SECRET, { apiVersion: '2026-04-22.dahlia' })
+  ? new Stripe(SECRET)
   : null;
 
 export const STRIPE_PUBLIC_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';

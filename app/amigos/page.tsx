@@ -81,4 +81,13 @@ export default async function FriendsPage() {
               {t(lang, 'friends.empty.subtitle')}
             </p>
             <Link href="/onboarding/friends">
-              <span className="border-2 border-fg bg-fg text-bg px-5 py-3 font-display text-base font-black uppercase in
+              <span className="border-2 border-fg bg-fg text-bg px-5 py-3 font-display text-base font-black uppercase inline-block">
+                {t(lang, 'friends.empty.cta')}
+              </span>
+            </Link>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}

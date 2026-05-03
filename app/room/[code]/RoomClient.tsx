@@ -243,6 +243,7 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
           <RoundView
             round={round}
             isPrompter={!!iAmPrompter}
+            myPlayerId={me?.id ?? null}
             myVote={myVote}
             votes={votes}
             eligibleVoters={eligibleVoters.length}
@@ -297,6 +298,7 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
 interface RoundViewProps {
   round: RoomRound;
   isPrompter: boolean;
+  myPlayerId: string | null;
   myVote: 'truth' | 'cap' | null | undefined;
   votes: RoundVote[];
   eligibleVoters: number;
@@ -306,7 +308,7 @@ interface RoundViewProps {
   allVoted: boolean;
 }
 
-function RoundView({ round, isPrompter, myVote, votes, eligibleVoters, onVote, onReveal, iAmHost, allVoted }: RoundViewProps) {
+function RoundView({ round, isPrompter, myPlayerId, myVote, votes, eligibleVoters, onVote, onReveal, iAmHost, allVoted }: RoundViewProps) {
   const revealed = !!round.revealed_at;
   const truthVotes = votes.filter(v => v.vote === 'truth').length;
   const capVotes = votes.filter(v => v.vote === 'cap').length;
@@ -321,7 +323,7 @@ function RoundView({ round, isPrompter, myVote, votes, eligibleVoters, onVote, o
       </p>
 
       {isPrompter && !round.recording_url ? (
-        <PrompterRecorder roundId={round.id} playerId={me?.id ?? null} />
+        <PrompterRecorder roundId={round.id} playerId={myPlayerId} />
       ) : null}
 
       {round.recording_url && round.sus_level === null ? (

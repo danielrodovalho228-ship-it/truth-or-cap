@@ -36,7 +36,7 @@ export default async function FindFriendsPage() {
           Match phone numbers to find friends already on Truth or Cap. Numbers stay on your device.
         </p>
 
-        <FriendsClient redirectTo="/friends" />
+        <FriendsClient />
       </div>
 
       <div className="tape-stripes h-3 w-full" />

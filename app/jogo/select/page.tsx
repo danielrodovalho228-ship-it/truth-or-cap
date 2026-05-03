@@ -83,4 +83,15 @@ export default async function SelectGamePage({
                 <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-2">
                   {gt.questions.length} {t(lang, 'select.questionsSuffix')} · ~{Math.round(gt.defaultDurationMs / 1000)}s
                 </p>
-                <p className="font-display text-2xl font-black leading-tight mb-1">{gt.l
+                <p className="font-display text-2xl font-black leading-tight mb-1">{gt.label}</p>
+                <p className="font-body text-sm text-fg-muted leading-snug">
+                  {gt.tagline}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </main>
+  );
+}

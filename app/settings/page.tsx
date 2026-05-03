@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { requireProfile } from '@/lib/auth/guard';
-import { getLang } from '@/lib/i18n/server';
-import { t } from '@/lib/i18n/messages';
 
 export const metadata: Metadata = {
   title: 'Settings · Truth or Cap',
@@ -11,33 +9,40 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   const { user, profile } = await requireProfile('/settings');
-  const lang = await getLang();
 
   return (
     <main className="min-h-screen flex flex-col">
       <div className="tape-stripes h-3 w-full" />
       <div className="flex-1 px-6 py-8 max-w-md mx-auto w-full">
         <Link href="/" className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg mb-6 inline-block">
-          {t(lang, 'settings.back')}
+          ← Home
         </Link>
 
-        <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">{t(lang, 'settings.label')}</p>
+        <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">Settings</p>
         <h1 className="font-display text-5xl font-black leading-[0.9] mb-6">
-          {t(lang, 'settings.title.line1')}<br />
-          <span className="italic font-light">{t(lang, 'settings.title.line2')}</span>
+          Your<br />
+          <span className="italic font-light">controls.</span>
         </h1>
 
         <div className="space-y-3 mb-8">
-          <Row label={t(lang, 'settings.row.username')} value={`@${profile.username}`} />
-          <Row label={t(lang, 'settings.row.email')} value={user.email ?? '—'} />
-          <Row label={t(lang, 'settings.row.streak')} value={`${profile.current_streak} ${t(lang, 'settings.row.streakUnit')}`} />
+          <Row label="Username" value={`@${profile.username}`} />
+          <Row label="Email" value={user.email ?? '—'} />
+          <Row label="Streak" value={`${profile.current_streak} days`} />
         </div>
 
         <div className="space-y-2">
           <SettingsLink href="/settings/privacy" title="Privacy" subtitle="Public profile, contacts, data" />
           <SettingsLink href="/settings/notifications" title="Notifications" subtitle="Push prefs (coming soon)" />
           <SettingsLink href="/settings/delete" title="Delete account" subtitle="Cascade delete + LGPD/GDPR" tone="warn" />
-          <SettingsLink href="/auth/sign-out" title="Sign out" subtitle="Clear session" />
+          <form action="/auth/sign-out" method="post">
+            <button
+              type="submit"
+              className="block w-full text-left border-2 border-line hover:border-fg p-3 transition-colors"
+            >
+              <p className="font-display text-base font-black uppercase tracking-tight">Sign out</p>
+              <p className="font-mono text-[10px] tracking-widest uppercase opacity-70 mt-0.5">Clear session</p>
+            </button>
+          </form>
         </div>
 
         <div className="mt-10 pt-6 border-t-2 border-line">
@@ -78,4 +83,11 @@ function SettingsLink({
     <Link
       href={href}
       className={`block border-2 p-3 transition-colors ${
-        tone === 'warn' ? 'bo
+        tone === 'warn' ? 'border-blood text-blood hover:bg-blood hover:text-fg' : 'border-line hover:border-fg'
+      }`}
+    >
+      <p className="font-display text-base font-black uppercase tracking-tight">{title}</p>
+      <p className="font-mono text-[10px] tracking-widest uppercase opacity-70 mt-0.5">{subtitle}</p>
+    </Link>
+  );
+}
