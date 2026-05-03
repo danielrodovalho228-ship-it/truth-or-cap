@@ -8,11 +8,11 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 // Note: server-side only. Never expose the secret to the client.
 
 const SECRET = process.env.IP_HASH_SALT || process.env.CRON_SECRET || '';
-if (!SECRET) {
-  // Fail loud at boot — these tokens are critical for anti-impersonation.
-  // (We use existing IP_HASH_SALT as the secret to avoid yet-another env var.)
-  // In tests / local without env vars, fall back to a static string (insecure)
-  // so dev still boots; production sets the env var.
+if (!SECRET && process.env.NODE_ENV === 'production') {
+  // Fail loud at boot in production — these tokens are critical for
+  // anti-impersonation. Without IP_HASH_SALT, an attacker can mint
+  // tor_player cookies and vote/upload as anyone.
+  throw new Error('IP_HASH_SALT (or CRON_SECRET) env var is required in production');
 }
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24h

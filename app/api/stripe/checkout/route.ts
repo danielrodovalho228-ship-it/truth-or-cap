@@ -38,11 +38,14 @@ export async function POST(req: NextRequest) {
 
   if (!customerId) {
     try {
-      const customer = await stripe.customers.create({
-        email: user.email ?? undefined,
-        name: (profile as { display_name?: string } | null)?.display_name ?? undefined,
-        metadata: { supabase_user_id: user.id },
-      });
+      const customer = await stripe.customers.create(
+        {
+          email: user.email ?? undefined,
+          name: (profile as { display_name?: string } | null)?.display_name ?? undefined,
+          metadata: { supabase_user_id: user.id },
+        },
+        { idempotencyKey: `cust:${user.id}` },
+      );
       customerId = customer.id;
       await admin.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id);
     } catch (err) {
@@ -51,7 +54,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const origin = req.headers.get('origin') ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://truthorcapapp.com';
+  // Always use the configured SITE_URL — never the request Origin header,
+  // which is attacker-controlled and could redirect post-payment to evil.tld
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://truthorcapapp.com';
   const priceId = priceIdFor(plan);
 
   try {

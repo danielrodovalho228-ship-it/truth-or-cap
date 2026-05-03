@@ -43,15 +43,15 @@ export async function POST(req: NextRequest) {
 
   // Enforce identity: authed users must vote with their own player row;
   // anon voters must present a valid HMAC playerToken issued at join time.
-  if (user) {
-    if (player.user_id && player.user_id !== user.id) {
+  // Identity check: if the slot is anon (user_id IS NULL), the caller
+  // must always present a valid HMAC playerToken cookie. Authed users
+  // can claim their own slot via session.
+  if (user && player.user_id) {
+    if (player.user_id !== user.id) {
       return NextResponse.json({ error: 'You do not own that player' }, { status: 403 });
     }
   } else {
-    if (player.user_id) {
-      return NextResponse.json({ error: 'This slot belongs to a registered user' }, { status: 403 });
-    }
-    // Verify HMAC playerToken cookie matches this voter + room.
+    // Anon slot OR authed-user-claiming-anon-slot: HMAC required.
     const cookieStore = await cookies();
     const token = cookieStore.get(PLAYER_TOKEN_COOKIE)?.value;
     const verified = verifyPlayerToken(token);

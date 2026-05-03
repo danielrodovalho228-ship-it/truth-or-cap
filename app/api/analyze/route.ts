@@ -77,6 +77,21 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Atomic claim: try to insert a placeholder analyses row. If a parallel
+  // request already claimed (unique on game_id), this insert fails with
+  // 23505 and we return the partial state instead of double-running providers.
+  const adminClaim = createServiceRoleClient();
+  const { error: claimErr } = await adminClaim
+    .from('analyses')
+    .insert({ game_id: gameId, player_id: user.id, sus_level: -1, reasons: { claim: 'in_progress' } });
+  if (claimErr) {
+    if ((claimErr as { code?: string }).code === '23505') {
+      return NextResponse.json({ success: true, gameId, susLevel: -1, cached: true, inFlight: true });
+    }
+    console.error('[analyze] claim insert failed', claimErr);
+    return NextResponse.json({ error: 'Could not claim analysis' }, { status: 500 });
+  }
+
   // Service role for storage download (bucket is private + signed-only).
   const admin = createServiceRoleClient();
   const { data: fileBlob, error: dlErr } = await admin

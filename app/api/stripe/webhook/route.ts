@@ -65,16 +65,45 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as Stripe.Subscription;
-        const userId = (sub.metadata?.supabase_user_id as string | undefined) ?? null;
         const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
         const active = sub.status === 'active' || sub.status === 'trialing';
-        // current_period_end is seconds since epoch
         const periodEnd = (sub as unknown as { current_period_end?: number }).current_period_end;
         const until = active && periodEnd
           ? new Date(periodEnd * 1000).toISOString()
           : null;
 
-        const updateBy = userId ? { id: userId } : { stripe_customer_id: customerId };
+        // Resolve userId in priority order:
+        // 1) sub.metadata.supabase_user_id (set by checkout/route.ts when we
+        //    created the subscription)
+        // 2) profiles row matching stripe_customer_id (set by
+        //    checkout.session.completed)
+        // 3) stripe.customers.retrieve(customerId).metadata.supabase_user_id
+        //    — covers webhook arriving BEFORE checkout.session.completed
+        let userId = (sub.metadata?.supabase_user_id as string | undefined) ?? null;
+        if (!userId) {
+          const { data: existing } = await admin
+            .from('profiles')
+            .select('id')
+            .eq('stripe_customer_id', customerId)
+            .maybeSingle();
+          userId = existing?.id ?? null;
+        }
+        if (!userId && stripe) {
+          try {
+            const customer = await stripe.customers.retrieve(customerId);
+            if (!('deleted' in customer && customer.deleted)) {
+              userId = (customer.metadata?.supabase_user_id as string | undefined) ?? null;
+            }
+          } catch (err) {
+            console.error('[stripe/webhook] customers.retrieve failed', err);
+          }
+        }
+
+        if (!userId) {
+          console.warn('[stripe/webhook] subscription event without resolvable userId', sub.id, customerId);
+          break;
+        }
+
         const { error } = await admin
           .from('profiles')
           .update({
@@ -83,7 +112,7 @@ export async function POST(req: NextRequest) {
             stripe_subscription_id: sub.id,
             stripe_customer_id: customerId,
           })
-          .match(updateBy);
+          .eq('id', userId);
         if (error) console.error('[stripe/webhook] sub update failed', error);
         break;
       }

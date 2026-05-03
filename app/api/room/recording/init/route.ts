@@ -61,8 +61,11 @@ export async function POST(req: NextRequest) {
     .single();
   if (!prompter) return NextResponse.json({ error: 'Prompter not found' }, { status: 404 });
 
-  if (user) {
-    if (prompter.user_id && prompter.user_id !== user.id) {
+  // Identity gate: if prompter slot is anon (user_id IS NULL), the caller
+  // must always present a valid HMAC playerToken cookie. Authed users
+  // can only claim their own slot via session.
+  if (user && prompter.user_id) {
+    if (prompter.user_id !== user.id) {
       return NextResponse.json({ error: 'Only the round prompter can upload' }, { status: 403 });
     }
   } else {

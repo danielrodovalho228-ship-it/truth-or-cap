@@ -8,19 +8,29 @@
     {
       "path": "/api/cron/qotd-challenge",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/expire-lapsed-premium",
+      "schedule": "0 5 * * *"
     }
   ],
   "headers": [
     {
       "source": "/admin/(.*)",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
       ]
     },
     {
       "source": "/auth/(.*)",
       "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
       ]
     }
   ]

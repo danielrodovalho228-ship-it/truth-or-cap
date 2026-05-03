@@ -29,9 +29,10 @@ export async function POST(req: NextRequest) {
   if (!player) return NextResponse.json({ error: 'Not in this room' }, { status: 404 });
   if (player.left_at) return NextResponse.json({ ok: true, alreadyLeft: true });
 
-  // Identity gate
-  if (user) {
-    if (player.user_id && player.user_id !== user.id) {
+  // Identity gate: anon slot requires HMAC cookie always; authed user
+  // can only release their own slot via session.
+  if (user && player.user_id) {
+    if (player.user_id !== user.id) {
       return NextResponse.json({ error: 'Cannot leave for another user' }, { status: 403 });
     }
   } else {

@@ -491,6 +491,7 @@ function PrompterRecorder({ roundId, playerId }: { roundId: string; playerId: st
         'video/mp4;codecs=h264,aac',
         'video/mp4',
       ];
+    if (typeof MediaRecorder === 'undefined') { setError('Your browser does not support recording. Update or try desktop.'); return; }
       const supported = candidates.find((m) => typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(m)) || '';
       const mimeType = supported || candidates[0];
       const mr = new MediaRecorder(stream, supported ? { mimeType } : undefined);
