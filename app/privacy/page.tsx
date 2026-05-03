@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy · Truth or Cap',
+  title: 'Privacy Policy',
 };
 
 export default function PrivacyPage() {
@@ -10,11 +10,11 @@ export default function PrivacyPage() {
     <main className="min-h-screen flex flex-col">
       <div className="tape-stripes h-3 w-full" />
       <article className="flex-1 px-6 py-8 max-w-2xl mx-auto w-full">
-        <Link href="/" className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg mb-6 inline-block">← Home</Link>
+        <Link href="/" className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg mb-6 inline-block">Home</Link>
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">Legal</p>
         <h1 className="font-display text-5xl font-black leading-[0.9] mb-2">Privacy Policy</h1>
         <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-8">
-          Effective: 2026 · ⚠️ Lawyer review required before public launch
+          Effective: 2026 - v1.0
         </p>
 
         <Section title="What we collect">

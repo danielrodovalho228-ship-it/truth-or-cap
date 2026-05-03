@@ -8,16 +8,26 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://truthorcapapp.com';
-  const imageUrl = `${baseUrl}/share/round/${id}/story-image`;
   const admin = createServiceRoleClient();
   const { data: round } = await admin
     .from('room_rounds')
-    .select('question, sus_level')
+    .select('question, sus_level, revealed_at')
     .eq('id', id)
     .maybeSingle();
-  const sus = Math.round(Number(round?.sus_level ?? 50));
-  const title = `SUS LEVEL ${sus}% - Truth or Cap`;
-  const description = round?.question ? `"${round.question}" - was it cap?` : 'Truth or Cap - AI lie detector party game.';
+
+  // Round missing or not yet revealed -> generic 404-style metadata.
+  if (!round || !round.revealed_at) {
+    return {
+      title: 'Round not found',
+      description: 'This Truth or Cap round is unavailable.',
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const imageUrl = `${baseUrl}/share/round/${id}/story-image`;
+  const sus = Math.round(Number(round.sus_level ?? 50));
+  const title = `SUS LEVEL ${sus}%`;
+  const description = round.question ? `"${round.question}" - was it cap?` : 'Truth or Cap - AI lie detector party game.';
   return {
     title,
     description,

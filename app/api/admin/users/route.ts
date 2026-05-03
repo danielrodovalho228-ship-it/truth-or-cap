@@ -27,19 +27,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  let body: { userId?: string; is_admin?: boolean; is_allowed?: boolean };
+  let body: { userId?: string; is_admin?: boolean; is_allowed?: boolean; is_premium?: boolean };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
-  const { userId, is_admin, is_allowed } = body;
+  const { userId, is_admin, is_allowed, is_premium } = body;
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
 
   const admin = createServiceRoleClient();
   const { data: before } = await admin
     .from('profiles')
-    .select('is_admin,is_allowed')
+    .select('is_admin,is_allowed,is_premium,premium_until')
     .eq('id', userId)
     .maybeSingle();
   if (!before) return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -61,6 +61,17 @@ export async function POST(req: NextRequest) {
     if (is_allowed) {
       updates.allowed_at = new Date().toISOString();
       updates.allowed_by = user.id;
+    }
+  }
+  if (typeof is_premium === 'boolean') {
+    updates.is_premium = is_premium;
+    if (is_premium) {
+      // Comp 1 year of Premium when granted manually by admin.
+      updates.premium_until = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+      updates.premium_granted_by = user.id;
+      updates.premium_granted_at = new Date().toISOString();
+    } else {
+      updates.premium_until = null;
     }
   }
   if (Object.keys(updates).length === 0) {

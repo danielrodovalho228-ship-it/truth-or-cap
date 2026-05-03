@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { SubscribeButton } from './SubscribeButton';
 
 export const metadata: Metadata = {
-  title: 'Premium · Truth or Cap',
+  title: 'Premium',
   description: 'Unlock spicy questions, advanced stats and the gold cap.',
 };
 
