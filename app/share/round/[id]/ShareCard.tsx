@@ -103,7 +103,7 @@ export function ShareCard({ sus, question, declared, imageUrl, inviteUrl }: Prop
           </button>
         </div>
 
-        <p className="text-xs text-violet-700/70 text-center">
+        <p className="text-xs text-violet-700/80 text-center">
           For TikTok/Instagram: download the image, then upload to your Story or post and tag <span className="font-bold">@truthorcap</span>.
         </p>
 

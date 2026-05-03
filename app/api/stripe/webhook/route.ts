@@ -119,10 +119,29 @@ export async function POST(req: NextRequest) {
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
         const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
-        await admin
+        // Honor premium_until: only revoke immediately if the paid period has
+        // already lapsed. Otherwise leave is_premium=true and let the cron
+        // (/api/cron/expire-lapsed-premium) flip it when premium_until passes.
+        const { data: profile } = await admin
           .from('profiles')
-          .update({ is_premium: false, premium_until: null })
-          .eq('stripe_customer_id', customerId);
+          .select('id, premium_until')
+          .eq('stripe_customer_id', customerId)
+          .maybeSingle();
+        if (profile) {
+          const until = profile.premium_until ? new Date(profile.premium_until).getTime() : 0;
+          if (Date.now() > until) {
+            await admin
+              .from('profiles')
+              .update({ is_premium: false, stripe_subscription_id: null })
+              .eq('id', profile.id);
+          } else {
+            // Still inside paid window; clear sub id but keep premium flag.
+            await admin
+              .from('profiles')
+              .update({ stripe_subscription_id: null })
+              .eq('id', profile.id);
+          }
+        }
         break;
       }
       case 'invoice.payment_failed': {

@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceRoleClient, createClient } from '@/lib/supabase/server';
+import { verifyPlayerToken, PLAYER_TOKEN_COOKIE } from '@/lib/player-token';
+import { cookies } from 'next/headers';
 import { rateLimit, HOUR_MS } from '@/lib/rate-limit';
 import { transcribeAudio } from '@/lib/analysis/transcription';
 import { analyzeVoice } from '@/lib/analysis/voice';
@@ -29,9 +31,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { roundId?: string };
+  let body: { roundId?: string; playerId?: string };
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
-  const { roundId } = body;
+  const { roundId, playerId } = body;
   if (!roundId || typeof roundId !== 'string' || roundId.length > 64) {
     return NextResponse.json({ error: 'roundId required' }, { status: 400 });
   }
@@ -43,6 +45,37 @@ export async function POST(req: NextRequest) {
     .eq('id', roundId)
     .single();
   if (!round) return NextResponse.json({ error: 'Round not found' }, { status: 404 });
+
+  // Membership check: caller must either be the authed user owning a player
+  // in this room, OR present a valid HMAC playerToken matching playerId.
+  let isMember = false;
+  if (user) {
+    const { data: authedPlayer } = await admin
+      .from('room_players')
+      .select('id')
+      .eq('room_id', round.room_id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (authedPlayer) isMember = true;
+  }
+  if (!isMember && playerId) {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(PLAYER_TOKEN_COOKIE)?.value;
+    const verified = verifyPlayerToken(token);
+    if (verified && verified.playerId === playerId && verified.roomId === round.room_id) {
+      const { data: anonPlayer } = await admin
+        .from('room_players')
+        .select('id')
+        .eq('id', playerId)
+        .eq('room_id', round.room_id)
+        .maybeSingle();
+      if (anonPlayer) isMember = true;
+    }
+  }
+  if (!isMember) {
+    return NextResponse.json({ error: 'Not a member of this room' }, { status: 403 });
+  }
+
   if (!round.recording_url) return NextResponse.json({ error: 'No recording uploaded yet' }, { status: 400 });
   if (round.sus_level !== null && round.sus_level !== ANALYZING_SENTINEL) {
     return NextResponse.json({ round, alreadyAnalyzed: true });

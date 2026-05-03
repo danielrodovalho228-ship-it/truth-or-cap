@@ -46,7 +46,7 @@ export default async function AdminRoomsPage() {
                   </span>
                 </td>
                 <td className="px-3 py-3 text-center text-violet-700">{r.current_round}/{r.max_rounds}</td>
-                <td className="px-3 py-3 hidden md:table-cell text-violet-700/70 text-xs">
+                <td className="px-3 py-3 hidden md:table-cell text-violet-700/80 text-xs">
                   {new Date(r.created_at).toLocaleString()}
                 </td>
               </tr>

@@ -4,6 +4,7 @@ import './globals.css';
 import { Providers } from './providers';
 import { BottomNavGate } from '@/components/layout/BottomNavGate';
 import { CookieBanner } from '@/components/layout/CookieBanner';
+import { getLang } from '@/lib/i18n/server';
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -86,18 +87,25 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const lang = await getLang();
   return (
     <html
-      lang="en"
+      lang={lang}
       className={`${fraunces.variable} ${manrope.variable} ${jetbrains.variable}`}
       suppressHydrationWarning
     >
       <body className="bg-bg text-fg antialiased min-h-screen pb-16">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 bg-fg text-bg px-4 py-2 rounded"
+        >
+          Skip to content
+        </a>
         <Providers>
           {children}
           <BottomNavGate />

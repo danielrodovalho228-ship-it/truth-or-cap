@@ -155,6 +155,16 @@ export function VideoRecorder({
       return;
     }
 
+    // Hard server-side limit is 25MB. Bail early so we don't waste an upload.
+    if (blob.size > 25_000_000) {
+      setState((s) => ({
+        ...s,
+        status: 'error',
+        error: 'Recording is over 25MB. Try a shorter take.',
+      }));
+      return;
+    }
+
     setState((s) => ({ ...s, status: 'uploading' }));
     try {
       // 1. Init: create game row + signed upload URL

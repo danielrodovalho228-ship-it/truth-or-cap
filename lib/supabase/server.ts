@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 
 type CookieEntry = { name: string; value: string; options?: CookieOptions };
 
@@ -50,3 +51,15 @@ export function createServiceRoleClient() {
     }
   );
 }
+
+
+/**
+ * Cached auth.getUser() for the current request. Server components in the
+ * same render call this multiple times (layout + page + nav); React.cache
+ * dedupes the round-trip per request.
+ */
+export const getCachedUser = cache(async () => {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  return { user: data.user ?? null, error };
+});

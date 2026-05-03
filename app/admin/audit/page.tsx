@@ -47,11 +47,11 @@ export default async function AuditPage() {
         <table className="w-full text-sm">
           <thead className="bg-violet-50 border-b border-pink-200">
             <tr>
-              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/70">When</th>
-              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/70">Actor</th>
-              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/70">Action</th>
-              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/70">Target</th>
-              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/70">Detail</th>
+              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/80">When</th>
+              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/80">Actor</th>
+              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/80">Action</th>
+              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/80">Target</th>
+              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/80">Detail</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-pink-100">
@@ -78,7 +78,7 @@ export default async function AuditPage() {
                   <td className="px-4 py-3 text-violet-700/80 font-mono text-[11px]">
                     {row.target_type ? `${row.target_type}:${row.target_id?.slice(0, 8) ?? ''}` : '—'}
                   </td>
-                  <td className="px-4 py-3 text-violet-700/70 font-mono text-[10px] truncate max-w-[220px]">
+                  <td className="px-4 py-3 text-violet-700/80 font-mono text-[10px] truncate max-w-[220px]">
                     {row.detail ? JSON.stringify(row.detail).slice(0, 80) : '—'}
                   </td>
                 </tr>

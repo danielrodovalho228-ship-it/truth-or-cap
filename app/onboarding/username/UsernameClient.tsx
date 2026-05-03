@@ -46,9 +46,8 @@ export function UsernameClient({ initial, hadFromSignup }: UsernameClientProps) 
         .eq('id', auth.user.id);
 
       if (dbError) {
-        setError(
-          dbError.code === '23505' ? 'Username taken' : 'Could not save. Try another handle.'
-        );
+        // Generic message to avoid leaking which usernames are registered.
+        setError("Couldn't save. Try a different handle.");
         return;
       }
 

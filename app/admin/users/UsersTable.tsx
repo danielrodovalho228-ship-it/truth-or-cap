@@ -80,11 +80,11 @@ export function UsersTable({ initial }: { initial: Row[] }) {
         <table className="w-full text-sm">
           <thead className="bg-violet-50">
             <tr>
-              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/70">User</th>
-              <th className="text-left px-3 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/70 hidden md:table-cell">Joined</th>
-              <th className="text-center px-3 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/70">Allowed</th>
-              <th className="text-center px-3 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/70">Admin</th>
-              <th className="text-center px-3 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/70">Premium</th>
+              <th className="text-left px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/80">User</th>
+              <th className="text-left px-3 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/80 hidden md:table-cell">Joined</th>
+              <th className="text-center px-3 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/80">Allowed</th>
+              <th className="text-center px-3 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/80">Admin</th>
+              <th className="text-center px-3 py-3 font-mono text-[10px] tracking-widest uppercase text-violet-700/80">Premium</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-pink-100">
@@ -92,7 +92,7 @@ export function UsersTable({ initial }: { initial: Row[] }) {
               <tr key={r.id} className="hover:bg-pink-50/30">
                 <td className="px-4 py-3">
                   <div className="font-bold text-violet-900">{r.username ? '@' + r.username : '—'}</div>
-                  <div className="text-xs text-violet-700/70 truncate max-w-[280px]">{r.email || r.id.slice(0,8)}</div>
+                  <div className="text-xs text-violet-700/80 truncate max-w-[280px]">{r.email || r.id.slice(0,8)}</div>
                 </td>
                 <td className="px-3 py-3 hidden md:table-cell text-violet-700/80 text-xs whitespace-nowrap">
                   {new Date(r.created_at).toLocaleDateString()}

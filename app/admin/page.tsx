@@ -255,7 +255,7 @@ function FunnelRow({ label, value, pct, highlight }: { label: string; value: num
     <div className="mb-3 last:mb-0">
       <div className="flex items-baseline justify-between mb-1">
         <span className="text-sm text-violet-900 font-medium">{label}</span>
-        <span className={`font-mono text-xs ${highlight ? 'text-pink-600 font-bold' : 'text-violet-700/70'}`}>
+        <span className={`font-mono text-xs ${highlight ? 'text-pink-600 font-bold' : 'text-violet-700/80'}`}>
           {value.toLocaleString()} ({pct}%)
         </span>
       </div>

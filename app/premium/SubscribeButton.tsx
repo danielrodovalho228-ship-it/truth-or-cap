@@ -55,7 +55,7 @@ export function SubscribeButton({ defaultPlan = 'monthly' }: Props) {
         >
           <div className="text-xs font-mono uppercase tracking-widest text-violet-600">Monthly</div>
           <div className="font-display text-2xl font-black text-violet-900">$4.99</div>
-          <div className="text-xs text-violet-700/70">per month</div>
+          <div className="text-xs text-violet-700/80">per month</div>
         </button>
         <button
           type="button"
@@ -74,7 +74,7 @@ export function SubscribeButton({ defaultPlan = 'monthly' }: Props) {
           </span>
           <div className="text-xs font-mono uppercase tracking-widest text-pink-600">Annual</div>
           <div className="font-display text-2xl font-black text-violet-900">$39.99</div>
-          <div className="text-xs text-violet-700/70">$3.33/mo · billed yearly</div>
+          <div className="text-xs text-violet-700/80">$3.33/mo · billed yearly</div>
         </button>
       </div>
 

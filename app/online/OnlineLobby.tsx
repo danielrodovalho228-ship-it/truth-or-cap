@@ -87,7 +87,7 @@ export function OnlineLobby() {
       </header>
 
       <section className="px-5">
-        <label className="block text-xs font-mono uppercase tracking-widest text-violet-700/70 mb-2">
+        <label className="block text-xs font-mono uppercase tracking-widest text-violet-700/80 mb-2">
           Your name
         </label>
         <input
@@ -100,7 +100,7 @@ export function OnlineLobby() {
       </section>
 
       <section className="px-5 mt-6">
-        <h2 className="text-xs font-mono uppercase tracking-widest text-violet-700/70 mb-2">Mode</h2>
+        <h2 className="text-xs font-mono uppercase tracking-widest text-violet-700/80 mb-2">Mode</h2>
         <div className="grid grid-cols-3 gap-3">
           {MODES.map((m) => (
             <button
@@ -121,7 +121,7 @@ export function OnlineLobby() {
       </section>
 
       <section className="px-5 mt-6">
-        <h2 className="text-xs font-mono uppercase tracking-widest text-violet-700/70 mb-2">Spice</h2>
+        <h2 className="text-xs font-mono uppercase tracking-widest text-violet-700/80 mb-2">Spice</h2>
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => setSpice('mild')}
@@ -133,7 +133,7 @@ export function OnlineLobby() {
             <Leaf className="w-5 h-5 text-emerald-600" />
             <div className="text-left">
               <div className="font-bold text-violet-900">Mild</div>
-              <div className="text-xs text-violet-700/70">All ages 16+</div>
+              <div className="text-xs text-violet-700/80">All ages 16+</div>
             </div>
           </button>
           <button
@@ -146,7 +146,7 @@ export function OnlineLobby() {
             <Flame className="w-5 h-5 text-rose-600" />
             <div className="text-left">
               <div className="font-bold text-violet-900">Spicy</div>
-              <div className="text-xs text-violet-700/70">Premium</div>
+              <div className="text-xs text-violet-700/80">Premium</div>
             </div>
             <span className="absolute top-2 right-2 text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded">PRO</span>
           </button>
@@ -164,7 +164,7 @@ export function OnlineLobby() {
       </section>
 
       <section className="px-5 mt-8">
-        <h2 className="text-xs font-mono uppercase tracking-widest text-violet-700/70 mb-2">
+        <h2 className="text-xs font-mono uppercase tracking-widest text-violet-700/80 mb-2">
           Or join with code
         </h2>
         <div className="flex gap-2">

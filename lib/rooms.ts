@@ -211,7 +211,7 @@ export async function startNextRound(
 ): Promise<RoomRound> {
   const { data: room } = await supabase
     .from('rooms')
-    .select('*')
+    .select('mode, spice, locale')
     .eq('id', roomId)
     .single();
   if (!room) throw new Error('Room not found');
@@ -219,28 +219,31 @@ export async function startNextRound(
   const question = await pickRandomQuestion(supabase, room.mode, room.spice, room.locale);
   if (!question) throw new Error('No questions available for this pack');
 
-  const startedAt = new Date();
-  const endsAt = new Date(startedAt.getTime() + durationSeconds * 1000);
+  // Atomic increment + insert; prevents TOCTOU race on rooms.current_round.
+  const { data: rpcResult, error } = await supabase.rpc('start_next_round_atomic', {
+    p_room_id: roomId,
+    p_prompter_player_id: prompterPlayerId,
+    p_question: question,
+  });
 
-  const { data: round, error } = await supabase
+  if (error) throw error;
+  const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
+  if (!row?.id) throw new Error('Failed to start round');
+
+  // Set ends_at (RPC sets started_at via DEFAULT now()) and flip status to playing.
+  const endsAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
+  const { data: round, error: updateErr } = await supabase
     .from('room_rounds')
-    .insert({
-      room_id: roomId,
-      round_number: room.current_round + 1,
-      prompter_player_id: prompterPlayerId,
-      question,
-      started_at: startedAt.toISOString(),
-      ends_at: endsAt.toISOString(),
-    })
+    .update({ ends_at: endsAt })
+    .eq('id', row.id)
     .select()
     .single();
-
-  if (error || !round) throw error ?? new Error('Failed to start round');
+  if (updateErr || !round) throw updateErr ?? new Error('Failed to finalize round');
 
   await supabase
     .from('rooms')
-    .update({ status: 'playing', current_round: room.current_round + 1 })
+    .update({ status: 'playing' })
     .eq('id', roomId);
 
-  return round;
+  return round as RoomRound;
 }

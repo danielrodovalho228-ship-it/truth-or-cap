@@ -62,35 +62,35 @@ export default async function PremiumPage({ searchParams }: Props) {
               <span className="text-2xl leading-none">🌶️</span>
               <div>
                 <div className="font-bold text-violet-900">Spicy pack</div>
-                <div className="text-sm text-violet-700/70">Adult-only questions, only for the bold</div>
+                <div className="text-sm text-violet-700/80">Adult-only questions, only for the bold</div>
               </div>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-2xl leading-none">📈</span>
               <div>
                 <div className="font-bold text-violet-900">Unlimited history</div>
-                <div className="text-sm text-violet-700/70">Every round saved forever</div>
+                <div className="text-sm text-violet-700/80">Every round saved forever</div>
               </div>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-2xl leading-none">🧠</span>
               <div>
                 <div className="font-bold text-violet-900">Advanced detector</div>
-                <div className="text-sm text-violet-700/70">Voice + face + language with extra precision</div>
+                <div className="text-sm text-violet-700/80">Voice + face + language with extra precision</div>
               </div>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-2xl leading-none">👑</span>
               <div>
                 <div className="font-bold text-violet-900">Gold cap badge</div>
-                <div className="text-sm text-violet-700/70">Profile flair + leaderboard highlight</div>
+                <div className="text-sm text-violet-700/80">Profile flair + leaderboard highlight</div>
               </div>
             </li>
             <li className="flex items-start gap-3">
               <span className="text-2xl leading-none">🚫</span>
               <div>
                 <div className="font-bold text-violet-900">No ads, ever</div>
-                <div className="text-sm text-violet-700/70">Forever, in every mode</div>
+                <div className="text-sm text-violet-700/80">Forever, in every mode</div>
               </div>
             </li>
           </ul>

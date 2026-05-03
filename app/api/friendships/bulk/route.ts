@@ -30,15 +30,17 @@ export async function POST(req: NextRequest) {
   const ids = Array.from(new Set(parsed.data.friendIds.filter((id) => id !== auth.user!.id)));
   if (ids.length === 0) return NextResponse.json({ added: 0 });
 
-  // Service role: friendship is mutual, so we insert two rows per pair.
-  // RLS allows us to insert our own (user_id = auth.uid()) — for the
-  // reverse row we need service role.
+  // Bilateral consent: only insert the requesting side (me -> friend).
+  // The other side requires the recipient to accept (handled by the
+  // friend-request accept flow). Previously this auto-inserted both
+  // directions, which let any user add themselves to anyone's friends.
   const admin = createServiceRoleClient();
 
-  const rows = ids.flatMap((friendId) => [
-    { user_id: auth.user!.id, friend_id: friendId, source: parsed.data.source },
-    { user_id: friendId, friend_id: auth.user!.id, source: parsed.data.source },
-  ]);
+  const rows = ids.map((friendId) => ({
+    user_id: auth.user!.id,
+    friend_id: friendId,
+    source: parsed.data.source,
+  }));
 
   const { error } = await admin.from('friendships').upsert(rows, {
     onConflict: 'user_id,friend_id',
