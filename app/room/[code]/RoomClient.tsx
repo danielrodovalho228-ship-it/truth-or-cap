@@ -20,6 +20,7 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
   const [round, setRound] = useState<RoomRound | null>(initialRound);
   const [votes, setVotes] = useState<RoundVote[]>([]);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
+  const [presentIds, setPresentIds] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -66,6 +67,39 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
     return () => { supabase.removeChannel(channel); };
   }, [supabase, room.id]);
 
+  // Presence: track who's actually online RIGHT NOW. Ghost players (closed
+  // browser without leaving) get filtered from eligibleVoters via this set.
+  useEffect(() => {
+    if (!myPlayerId) return;
+    const ch = supabase.channel(`presence:${room.id}`, {
+      config: { presence: { key: myPlayerId } },
+    });
+    ch.on('presence', { event: 'sync' }, () => {
+      const state = ch.presenceState();
+      const ids = new Set(Object.keys(state));
+      setPresentIds(ids);
+    }).subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await ch.track({ playerId: myPlayerId, joinedAt: new Date().toISOString() });
+      }
+    });
+    return () => { supabase.removeChannel(ch); };
+  }, [supabase, room.id, myPlayerId]);
+
+  // beforeunload: explicit leave so the next host action doesn't wait for ghost.
+  useEffect(() => {
+    if (!myPlayerId) return;
+    const handler = () => {
+      const blob = new Blob(
+        [JSON.stringify({ roomId: room.id, playerId: myPlayerId })],
+        { type: 'application/json' },
+      );
+      navigator.sendBeacon('/api/room/leave', blob);
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [room.id, myPlayerId]);
+
   // round_votes channel is scoped to the active round.id — re-subscribes
   // whenever round changes so we never see votes from sibling rooms.
   useEffect(() => {
@@ -95,7 +129,14 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
   const iAmHost = me?.is_host ?? false;
   const iAmPrompter = round && me && round.prompter_player_id === me.id;
   const myVote = round ? votes.find(v => v.voter_player_id === myPlayerId)?.vote : null;
-  const eligibleVoters = players.filter(p => p.id !== round?.prompter_player_id);
+  const eligibleVoters = players.filter(p => {
+    if (p.id === round?.prompter_player_id) return false;
+    if (p.left_at) return false;
+    // Anonymous players must be present in the realtime presence channel;
+    // authed players count regardless (they may still be reachable in another tab).
+    if (!p.user_id) return presentIds.has(p.id);
+    return true;
+  });
   const allVoted = round && eligibleVoters.length > 0 && votes.length >= eligibleVoters.length;
 
   const startNextRound = () => {
