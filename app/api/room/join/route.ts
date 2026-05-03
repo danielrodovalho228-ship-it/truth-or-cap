@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { joinRoom } from '@/lib/rooms';
-import { issuePlayerToken, PLAYER_TOKEN_COOKIE } from '@/lib/player-token';
+import { issuePlayerToken, PLAYER_TOKEN_COOKIE, verifyPlayerToken } from '@/lib/player-token';
+import { cookies } from 'next/headers';
 import { isPremiumAsync } from '@/lib/admin';
 
 export const runtime = 'nodejs';
@@ -31,6 +32,43 @@ export async function POST(req: NextRequest) {
       .select('id, spice')
       .eq('code', code)
       .maybeSingle();
+    // Anon rejoin: if caller already has a valid playerToken cookie for
+    // this room, return their existing player row instead of creating
+    // a duplicate (which would inflate capacity).
+    if (!user) {
+      const cookieStore = await cookies();
+      const existingToken = cookieStore.get(PLAYER_TOKEN_COOKIE)?.value;
+      const verified = verifyPlayerToken(existingToken);
+      if (verified && roomPeek && verified.roomId === roomPeek.id) {
+        const { data: existingPlayer } = await admin
+          .from('room_players')
+          .select('*')
+          .eq('id', verified.playerId)
+          .eq('room_id', roomPeek.id)
+          .maybeSingle();
+        if (existingPlayer) {
+          // Refresh left_at if they had left, refresh display name if changed
+          if (existingPlayer.left_at || existingPlayer.display_name !== displayName) {
+            await admin
+              .from('room_players')
+              .update({ left_at: null, display_name: displayName })
+              .eq('id', existingPlayer.id);
+          }
+          // Re-issue cookie (fresh expiry) and return  
+          const refreshedToken = issuePlayerToken(existingPlayer.id, roomPeek.id);
+          const res = NextResponse.json({ room: roomPeek, player: existingPlayer });
+          res.cookies.set(PLAYER_TOKEN_COOKIE, refreshedToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 24 * 60 * 60,
+          });
+          return res;
+        }
+      }
+    }
+
     if (roomPeek?.spice === 'spicy') {
       const allowed = (await isPremiumAsync(user?.id ?? null))
         || process.env.ALLOW_SPICY_FOR_ALL === '1';

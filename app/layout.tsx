@@ -107,7 +107,7 @@ export default async function RootLayout({
           Skip to content
         </a>
         <Providers>
-          {children}
+          <main id="main-content">{children}</main>
           <BottomNavGate />
           <CookieBanner />
         </Providers>

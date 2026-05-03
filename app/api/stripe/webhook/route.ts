@@ -104,11 +104,31 @@ export async function POST(req: NextRequest) {
           break;
         }
 
+        // If subscription is no longer active but premium_until is still in
+        // the future, keep is_premium=true and let the cron expire it when
+        // period_end actually passes. Mirrors customer.subscription.deleted
+        // logic to handle out-of-order webhook delivery.
+        let nextPremium = active;
+        let nextUntil = until;
+        if (!active) {
+          const { data: existing } = await admin
+            .from('profiles')
+            .select('premium_until')
+            .eq('id', userId)
+            .maybeSingle();
+          const stillInWindow =
+            existing?.premium_until && new Date(existing.premium_until) > new Date();
+          if (stillInWindow) {
+            nextPremium = true;
+            nextUntil = existing!.premium_until;
+          }
+        }
+
         const { error } = await admin
           .from('profiles')
           .update({
-            is_premium: active,
-            premium_until: until,
+            is_premium: nextPremium,
+            premium_until: nextUntil,
             stripe_subscription_id: sub.id,
             stripe_customer_id: customerId,
           })

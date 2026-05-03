@@ -77,20 +77,12 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Atomic claim: try to insert a placeholder analyses row. If a parallel
-  // request already claimed (unique on game_id), this insert fails with
-  // 23505 and we return the partial state instead of double-running providers.
-  const adminClaim = createServiceRoleClient();
-  const { error: claimErr } = await adminClaim
-    .from('analyses')
-    .insert({ game_id: gameId, player_id: user.id, sus_level: -1, reasons: { claim: 'in_progress' } });
-  if (claimErr) {
-    if ((claimErr as { code?: string }).code === '23505') {
-      return NextResponse.json({ success: true, gameId, susLevel: -1, cached: true, inFlight: true });
-    }
-    console.error('[analyze] claim insert failed', claimErr);
-    return NextResponse.json({ error: 'Could not claim analysis' }, { status: 500 });
-  }
+  // Race-against-double-fire: rely on rate limit (12/h per user) + the
+  // games.analyzed_at column guard. If two requests arrive in the rate
+  // window before either completes, both will run the providers. The
+  // unique constraint on analyses.game_id makes the LATE insert fail
+  // (caught at line 171 below), so cost-bomb is bounded by the rate limit
+  // not by an early claim row that violates schema constraints.
 
   // Service role for storage download (bucket is private + signed-only).
   const admin = createServiceRoleClient();
