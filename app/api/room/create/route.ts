@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { createRoom, type RoomMode, type RoomSpice } from '@/lib/rooms';
 import { isPremiumAsync } from '@/lib/admin';
+import { issuePlayerToken, PLAYER_TOKEN_COOKIE } from '@/lib/player-token';
 
 export const runtime = 'nodejs';
 
@@ -50,7 +51,16 @@ export async function POST(req: NextRequest) {
       hostDisplayName: displayName,
       mode, spice, locale,
     });
-    return NextResponse.json({ room, player });
+    const token = issuePlayerToken(player.id, room.id);
+    const res = NextResponse.json({ room, player });
+    res.cookies.set(PLAYER_TOKEN_COOKIE, token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 24 * 60 * 60,
+    });
+    return res;
   } catch (err) {
     console.error('[room/create] failed:', err);
     return NextResponse.json({ error: 'Failed to create room' }, { status: 500 });

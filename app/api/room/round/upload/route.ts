@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceRoleClient, createClient } from '@/lib/supabase/server';
+import { verifyPlayerToken, PLAYER_TOKEN_COOKIE } from '@/lib/player-token';
+import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
 
@@ -47,9 +49,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Only the round prompter can upload' }, { status: 403 });
     }
   } else {
-    // Anonymous prompter must prove identity by supplying playerId == prompter id.
+    // Anonymous prompter: must hold a valid HMAC playerToken cookie from join.
     if (!playerId || playerId !== prompter.id) {
       return NextResponse.json({ error: 'Only the round prompter can upload' }, { status: 403 });
+    }
+    const cookieStore = await cookies();
+    const token = cookieStore.get(PLAYER_TOKEN_COOKIE)?.value;
+    const verified = verifyPlayerToken(token);
+    if (!verified || verified.playerId !== playerId || verified.roomId !== round.room_id) {
+      return NextResponse.json({ error: 'Player session invalid; rejoin the room.' }, { status: 403 });
     }
   }
 

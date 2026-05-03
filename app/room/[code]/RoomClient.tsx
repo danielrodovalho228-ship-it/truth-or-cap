@@ -484,10 +484,10 @@ function PrompterRecorder({ roundId, playerId }: { roundId: string; playerId: st
     const ext = isMp4 ? 'mp4' : 'webm';
     const path = `rooms/${roundId}-${Date.now()}.${ext}`;
     try {
-      const initRes = await fetch('/api/recording/init', {
+      const initRes = await fetch('/api/room/recording/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path, contentType: recordedMime }),
+        body: JSON.stringify({ path, contentType: recordedMime, roundId, playerId }),
       });
       const init = await initRes.json();
       if (!initRes.ok) throw new Error(init.error ?? 'Init failed');

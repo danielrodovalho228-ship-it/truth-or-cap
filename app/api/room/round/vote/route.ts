@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceRoleClient, createClient } from '@/lib/supabase/server';
+import { verifyPlayerToken, PLAYER_TOKEN_COOKIE } from '@/lib/player-token';
+import { cookies } from 'next/headers';
 
 export const runtime = 'nodejs';
 
@@ -39,17 +41,22 @@ export async function POST(req: NextRequest) {
     .single();
   if (!player) return NextResponse.json({ error: 'Not in this room' }, { status: 403 });
 
-  // Enforce identity: authed users must vote with their own player row.
-  // Anonymous voters: at minimum, the player record must exist with user_id = null
-  // (a slot they joined). Ideal future: signed token on join.
+  // Enforce identity: authed users must vote with their own player row;
+  // anon voters must present a valid HMAC playerToken issued at join time.
   if (user) {
     if (player.user_id && player.user_id !== user.id) {
       return NextResponse.json({ error: 'You do not own that player' }, { status: 403 });
     }
   } else {
     if (player.user_id) {
-      // Authed slot can't be voted for by anon caller.
       return NextResponse.json({ error: 'This slot belongs to a registered user' }, { status: 403 });
+    }
+    // Verify HMAC playerToken cookie matches this voter + room.
+    const cookieStore = await cookies();
+    const token = cookieStore.get(PLAYER_TOKEN_COOKIE)?.value;
+    const verified = verifyPlayerToken(token);
+    if (!verified || verified.playerId !== voterPlayerId || verified.roomId !== round.room_id) {
+      return NextResponse.json({ error: 'Player session invalid; rejoin the room.' }, { status: 403 });
     }
   }
 
