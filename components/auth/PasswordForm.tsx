@@ -13,12 +13,11 @@ import { UsernameField } from './UsernameField';
 
 interface PasswordFormProps {
   mode: 'sign-in' | 'sign-up';
-  next?: string;
 }
 
 const initial: ActionResult = { ok: false };
 
-export function PasswordForm({ mode, next }: PasswordFormProps) {
+export function PasswordForm({ mode }: PasswordFormProps) {
   const [username, setUsername] = useState('');
   const action = mode === 'sign-up' ? signUpWithPassword : signInWithPassword;
   const [state, formAction, pending] = useActionState(action, initial);
@@ -36,7 +35,6 @@ export function PasswordForm({ mode, next }: PasswordFormProps) {
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
-      {next ? <input type="hidden" name="next" value={next} /> : null}
       <div>
         <Label htmlFor="email-pw">Email</Label>
         <Input
@@ -75,6 +73,14 @@ export function PasswordForm({ mode, next }: PasswordFormProps) {
       {state.error ? (
         <p className="font-mono text-xs uppercase tracking-widest text-blood" role="alert">
           {state.error}
+        </p>
+      ) : null}
+
+      {mode === 'sign-in' ? (
+        <p className="text-right">
+          <a href="/auth/forgot-password" className="font-mono text-[10px] tracking-widest uppercase text-fg-muted hover:text-fg underline underline-offset-4">
+            Forgot password?
+          </a>
         </p>
       ) : null}
 

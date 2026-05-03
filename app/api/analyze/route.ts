@@ -7,11 +7,18 @@ import { analyzeFace } from '@/lib/analysis/face';
 import { analyzeLinguistic } from '@/lib/analysis/linguistic';
 import { aggregateScore } from '@/lib/analysis/scoring';
 import { calculateCost, logCost } from '@/lib/analysis/cost';
+import { rateLimit, HOUR_MS } from '@/lib/rate-limit';
 
 // Hume + Whisper need Node buffers, not edge runtime. Bump the timeout —
 // Hume batch jobs can take 20-40s on top of upload + Claude.
 export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+// Cost-bomb protection: cap audio/video size at 25MB. Whisper API limit is 25MB
+// anyway; anything bigger would fail downstream and burn Hume credits.
+const MAX_AUDIO_BYTES = 25_000_000;
+// Per-user rate cap so a runaway client can't drain $$$ in one minute.
+const ANALYSES_PER_USER_PER_HOUR = 12;
 
 const AnalyzeSchema = z.object({
   gameId: z.string().uuid(),
@@ -22,6 +29,15 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  // Rate limit per user, before any heavy lifting.
+  const rl = rateLimit('analyze:solo:' + user.id, ANALYSES_PER_USER_PER_HOUR, HOUR_MS);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many analyses. Try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetIn / 1000)) } },
+    );
+  }
 
   let body: unknown;
   try {
@@ -72,7 +88,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Could not load recording' }, { status: 500 });
   }
 
+  // Reject early if blob is suspiciously large — protects Whisper/Hume from
+  // huge uploads that would either fail or burn cost.
+  if (fileBlob.size > MAX_AUDIO_BYTES) {
+    return NextResponse.json(
+      { error: 'Recording too large. Maximum 25MB.' },
+      { status: 413 },
+    );
+  }
+
   const buffer = Buffer.from(await fileBlob.arrayBuffer());
+  if (buffer.byteLength > MAX_AUDIO_BYTES) {
+    return NextResponse.json({ error: 'Recording too large.' }, { status: 413 });
+  }
   const mime = fileBlob.type || 'video/webm';
   const durationMs = game.recording_duration_ms;
 

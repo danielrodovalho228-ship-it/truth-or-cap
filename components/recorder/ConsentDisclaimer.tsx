@@ -104,15 +104,7 @@ export function ConsentDisclaimer({ onAccept, onCancel }: ConsentDisclaimerProps
           <Button onClick={onCancel} variant="ghost" size="md" fullWidth>
             Cancel
           </Button>
-          <Button
-            onClick={
-              allAgreed
-                ? onAccept
-                : () => setAgreed({ entertainment: true, recording: true, sharing: true, age: true })
-            }
-            size="md"
-            fullWidth
-          >
+          <Button onClick={onAccept} size="md" fullWidth disabled={!allAgreed}>
             {allAgreed ? "Let's play →" : `Check all 4`}
           </Button>
         </div>

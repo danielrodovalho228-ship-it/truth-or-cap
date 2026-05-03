@@ -1,4 +1,4 @@
-// Question pool for /game/new. PG-13 max — App Store reviewers reject
+// Question pool for /jogo/novo. PG-13 max — App Store reviewers reject
 // content involving drugs, violence, or sexual material, so we keep things
 // in the "everyday awkward" zone.
 //

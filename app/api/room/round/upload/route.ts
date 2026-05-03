@@ -17,12 +17,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'declaredAnswer must be truth or cap' }, { status: 400 });
   }
 
-  // Path must be inside the rooms/ prefix and reference this round's id (or at least be a webm).
-  if (!/^rooms\/[A-Za-z0-9-]+\.webm$/.test(recordingUrl)) {
+  // Path must be rooms/{roundId}{optional-suffix}.{webm|mp4} — supports
+  // iOS Safari which records mp4, plus client-side dedup suffix (e.g. timestamp).
+  const pathRe = new RegExp('^rooms/' + roundId.replace(/[^A-Za-z0-9-]/g, '') + '[A-Za-z0-9-]*\\.(webm|mp4)$');
+  if (!pathRe.test(recordingUrl)) {
     return NextResponse.json({ error: 'Invalid recording path' }, { status: 400 });
-  }
-  if (!recordingUrl.includes(roundId)) {
-    return NextResponse.json({ error: 'recordingUrl must include roundId' }, { status: 400 });
   }
 
   const admin = createServiceRoleClient();

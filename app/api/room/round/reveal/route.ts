@@ -26,13 +26,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Only host can reveal' }, { status: 403 });
   }
 
-  const { data: updated, error } = await admin
+  // Idempotent reveal: only the first call wins.
+  const { data: updated } = await admin
     .from('room_rounds')
     .update({ revealed_at: new Date().toISOString() })
     .eq('id', roundId)
+    .is('revealed_at', null)
     .select()
-    .single();
-  if (error || !updated) return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+    .maybeSingle();
+
+  if (!updated) {
+    const { data: existing } = await admin
+      .from('room_rounds')
+      .select('*')
+      .eq('id', roundId)
+      .single();
+    return NextResponse.json({ round: existing, alreadyRevealed: true });
+  }
 
   return NextResponse.json({ round: updated });
 }

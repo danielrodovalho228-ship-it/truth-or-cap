@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createServiceRoleClient, createClient } from '@/lib/supabase/server';
+import { rateLimit, HOUR_MS } from '@/lib/rate-limit';
 import { transcribeAudio } from '@/lib/analysis/transcription';
 import { analyzeVoice } from '@/lib/analysis/voice';
 import { analyzeFace } from '@/lib/analysis/face';
@@ -9,10 +10,25 @@ import { aggregateScore } from '@/lib/analysis/scoring';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Sentinel value to claim a round and prevent concurrent analyze spend.
 const ANALYZING_SENTINEL = -1;
+const MAX_AUDIO_BYTES = 25_000_000;
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    req.headers.get('x-real-ip') ||
+    'unknown';
+  const rlKey = user ? 'analyze:u:' + user.id : 'analyze:ip:' + ip;
+  const rl = rateLimit(rlKey, 10, HOUR_MS);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Too many analyses. Try again later.' },
+      { status: 429, headers: { 'Retry-After': String(Math.ceil(rl.resetIn / 1000)) } },
+    );
+  }
+
   let body: { roundId?: string };
   try { body = await req.json(); } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }); }
   const { roundId } = body;
@@ -32,7 +48,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ round, alreadyAnalyzed: true });
   }
 
-  // Atomic claim: only one concurrent analyze wins.
   const { data: claimed } = await admin
     .from('room_rounds')
     .update({ sus_level: ANALYZING_SENTINEL })
@@ -41,17 +56,14 @@ export async function POST(req: NextRequest) {
     .select('id')
     .maybeSingle();
   if (!claimed) {
-    // Another worker already claimed it.
     return NextResponse.json({ round, alreadyClaimed: true });
   }
 
-  // Path validation: recording must be inside rooms/ prefix to prevent reading other recordings.
-  if (!/^rooms\/[A-Za-z0-9-]+\.webm$/.test(round.recording_url)) {
+  if (!/^rooms\/[A-Za-z0-9-]+\.(webm|mp4)$/.test(round.recording_url)) {
     await admin.from('room_rounds').update({ sus_level: 50, analysis_summary: 'invalid path' }).eq('id', roundId);
     return NextResponse.json({ error: 'Invalid recording path' }, { status: 400 });
   }
 
-  // Wrap entire pipeline in a try/finally that ALWAYS writes a sus_level so the round never sticks at sentinel.
   let finalSus = 50;
   let finalSummary = 'no signals';
   try {
@@ -66,13 +78,21 @@ export async function POST(req: NextRequest) {
     let buffer: Buffer;
     try {
       const r = await fetch(signed.signedUrl);
+      const contentLen = Number(r.headers.get('content-length') ?? 0);
+      if (contentLen > MAX_AUDIO_BYTES) {
+        finalSummary = 'recording too large';
+        return NextResponse.json({ error: 'Recording too large' }, { status: 413 });
+      }
       buffer = Buffer.from(await r.arrayBuffer());
+      if (buffer.byteLength > MAX_AUDIO_BYTES) {
+        finalSummary = 'recording too large';
+        return NextResponse.json({ error: 'Recording too large' }, { status: 413 });
+      }
     } catch {
       finalSummary = 'recording download failed';
       return NextResponse.json({ error: 'Recording fetch failed' }, { status: 500 });
     }
 
-    // Race the whole AI pipeline against a 50s budget so we always have time to write.
     const ANALYZE_BUDGET_MS = 50_000;
     const pipeline = (async () => {
       const [transcript, voice, face] = await Promise.allSettled([
@@ -97,11 +117,11 @@ export async function POST(req: NextRequest) {
         duration_ms: 30000,
       });
 
-      const summaryParts: string[] = [];
-      if (voice.status === 'fulfilled') summaryParts.push(`voice ${(voice.value.score).toFixed(0)}`);
-      if (face.status === 'fulfilled') summaryParts.push(`face ${(face.value.score).toFixed(0)}`);
-      if (linguistic) summaryParts.push(`language ${(linguistic.score).toFixed(0)}`);
-      return { sus: aggregate.susLevel, summary: summaryParts.length ? summaryParts.join(' / ') : 'no signals' };
+      const parts: string[] = [];
+      if (voice.status === 'fulfilled') parts.push('voice ' + voice.value.score.toFixed(0));
+      if (face.status === 'fulfilled') parts.push('face ' + face.value.score.toFixed(0));
+      if (linguistic) parts.push('language ' + linguistic.score.toFixed(0));
+      return { sus: aggregate.susLevel, summary: parts.length ? parts.join(' / ') : 'no signals' };
     })();
 
     const timeout = new Promise<{ sus: number; summary: string }>((resolve) => {
@@ -114,12 +134,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ susLevel: finalSus, summary: finalSummary });
   } finally {
-    // ALWAYS write something so the round never sticks at sentinel.
     await admin
       .from('room_rounds')
       .update({ sus_level: finalSus, analysis_summary: finalSummary })
       .eq('id', roundId);
-    // Best-effort cost log.
     try {
       await admin.from('api_cost_log').insert({
         endpoint: '/api/room/round/analyze',
@@ -127,7 +145,7 @@ export async function POST(req: NextRequest) {
         meta: { roundId, summary: finalSummary },
       });
     } catch {
-      // table may not exist, swallow.
+      /* table may not exist */
     }
   }
 }

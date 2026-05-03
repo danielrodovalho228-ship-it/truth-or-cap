@@ -61,28 +61,33 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'room_rounds', filter: `room_id=eq.${room.id}` }, (payload) => {
         setRound((prev) => prev && prev.id === (payload.new as RoomRound).id ? (payload.new as RoomRound) : prev);
       })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'round_votes' }, (payload) => {
-        const v = payload.new as RoundVote;
-        // Compare against latest round via state setter (avoid stale closure).
-        setVotes((prev) => {
-          // We don't know the round id here without state; let downstream filter.
-          if (prev.some(x => x.id === v.id)) return prev;
-          return [...prev, v];
-        });
-      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [supabase, room.id]);
 
-  // When a round becomes active, fetch its existing votes (in case we joined late).
+  // round_votes channel is scoped to the active round.id — re-subscribes
+  // whenever round changes so we never see votes from sibling rooms.
   useEffect(() => {
     if (!round) { setVotes([]); return; }
     let cancelled = false;
     supabase.from('round_votes').select('*').eq('round_id', round.id).then(({ data }) => {
       if (!cancelled && data) setVotes(data);
     });
-    return () => { cancelled = true; };
+
+    const ch = supabase
+      .channel(`round-votes:${round.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'round_votes', filter: `round_id=eq.${round.id}` },
+        (payload) => {
+          const v = payload.new as RoundVote;
+          setVotes((prev) => prev.some(x => x.id === v.id) ? prev : [...prev, v]);
+        },
+      )
+      .subscribe();
+
+    return () => { cancelled = true; supabase.removeChannel(ch); };
   }, [supabase, round?.id]);
 
   const me = players.find(p => p.id === myPlayerId);
@@ -316,7 +321,7 @@ function RoundView({ round, isPrompter, myVote, votes, eligibleVoters, onVote, o
       </p>
 
       {isPrompter && !round.recording_url ? (
-        <PrompterRecorder roundId={round.id} />
+        <PrompterRecorder roundId={round.id} playerId={me?.id ?? null} />
       ) : null}
 
       {round.recording_url && round.sus_level === null ? (
@@ -415,7 +420,7 @@ function RoundView({ round, isPrompter, myVote, votes, eligibleVoters, onVote, o
   );
 }
 
-function PrompterRecorder({ roundId }: { roundId: string }) {
+function PrompterRecorder({ roundId, playerId }: { roundId: string; playerId: string | null }) {
   const [recording, setRecording] = useState(false);
   const [uploaded, setUploaded] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -495,7 +500,9 @@ function PrompterRecorder({ roundId }: { roundId: string }) {
       const upRes = await fetch('/api/room/round/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roundId, recordingUrl: path, declaredAnswer }),
+        // Send playerId so anonymous prompters can prove identity to the
+        // server (authed users are matched via their session.user_id).
+        body: JSON.stringify({ roundId, playerId, recordingUrl: path, declaredAnswer }),
       });
       const up = await upRes.json();
       if (!upRes.ok) throw new Error(up.error ?? 'Upload metadata failed');

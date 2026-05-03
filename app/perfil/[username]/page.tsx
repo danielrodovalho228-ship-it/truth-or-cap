@@ -77,7 +77,7 @@ export default async function ProfilePage({ params }: PageProps) {
             <Button variant="secondary" size="md" fullWidth>Edit profile</Button>
           </Link>
         ) : (
-          <Link href={`/game/new?opponent=${encodeURIComponent(profile.username)}`} className="block mb-6">
+          <Link href={`/jogo/novo?opponent=${encodeURIComponent(profile.username)}`} className="block mb-6">
             <Button size="md" fullWidth>Challenge @{profile.username}</Button>
           </Link>
         )}
@@ -90,7 +90,7 @@ export default async function ProfilePage({ params }: PageProps) {
           <ul className="space-y-2">
             {games.map((g) => (
               <li key={g.id}>
-                <Link href={`/game/${g.id}`} className="block border-2 border-line hover:border-fg p-3 transition-colors">
+                <Link href={`/jogo/${g.id}`} className="block border-2 border-line hover:border-fg p-3 transition-colors">
                   <p className={cn(
                     'font-mono text-[10px] tracking-widest uppercase mb-1',
                     g.declared_answer === 'truth' ? 'text-acid' : 'text-blood'

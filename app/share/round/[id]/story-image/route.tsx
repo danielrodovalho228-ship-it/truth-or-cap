@@ -12,6 +12,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     .eq('id', id)
     .maybeSingle();
 
+  if (!round || !round.revealed_at) {
+    return new Response('Round not revealed yet', { status: 404 });
+  }
   const sus = Math.round(Number(round?.sus_level ?? 50));
   const question = round?.question ?? '';
   const declared = round?.declared_answer?.toUpperCase() ?? 'TRUTH';
@@ -41,7 +44,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 36, opacity: 0.85, letterSpacing: 6, textTransform: 'uppercase', fontWeight: 700 }}>Truth or Cap</div>
-          <div style={{ fontSize: 28, opacity: 0.75 }}>truthorcapapp.com</div>
+          <div style={{ fontSize: 28, opacity: 0.75 }}>{(process.env.NEXT_PUBLIC_SITE_URL || 'truthorcapapp.com').replace(/^https?:\/\//, '')}</div>
         </div>
 
         <div style={{ marginTop: 80, fontSize: 28, opacity: 0.75, letterSpacing: 4, textTransform: 'uppercase' }}>The question</div>

@@ -10,7 +10,7 @@ interface FirstVisitorOverlayProps {
   question: string;
 }
 
-/** Shown over /game/[id] for first-time visitors before they vote.
+/** Shown over /jogo/[id] for first-time visitors before they vote.
  *  Frames the experience: "watch it, decide, then we'll show what AI thinks." */
 export function FirstVisitorOverlay({ username, question }: FirstVisitorOverlayProps) {
   const [dismissed, setDismissed] = useState(false);

@@ -24,6 +24,15 @@ export function UsersTable({ initial }: { initial: Row[] }) {
     const current = rows.find(r => r.id === id);
     if (!current) return;
     const next = !current[field];
+    // Confirm destructive toggles only (granting access doesn't need a prompt).
+    if (current[field] && typeof window !== 'undefined') {
+      const who = current.email || current.username || current.id.slice(0, 8);
+      const msg =
+        field === 'is_admin'
+          ? 'Demote ' + who + ' from admin?'
+          : 'Revoke access for ' + who + '?';
+      if (!window.confirm(msg)) return;
+    }
     setRows((prev) => prev.map(r => r.id === id ? { ...r, [field]: next } : r));
     startTransition(async () => {
       try {

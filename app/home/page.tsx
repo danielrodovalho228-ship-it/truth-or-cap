@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { Radio } from 'lucide-react';
 import { requireUser } from '@/lib/auth/guard';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { getLang } from '@/lib/i18n/server';
+import { t } from '@/lib/i18n/messages';
 
 export const metadata: Metadata = {
   title: 'Home · Truth or Cap',
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const user = await requireUser('/home');
   const supabase = await createClient();
+  const lang = await getLang();
 
   const { data: friendIds } = await supabase
     .from('friendships')
@@ -38,42 +40,24 @@ export default async function HomePage() {
       <div className="flex-1 px-6 py-8 max-w-md mx-auto w-full">
         <header className="flex items-center justify-between mb-6">
           <Link href="/" className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg">
-            ← truthorcap
+            {t(lang, 'feed.back')}
           </Link>
-          <Link href="/game/select">
-            <Button size="sm">+ New game</Button>
+          <Link href="/jogo/select">
+            <Button size="sm">{t(lang, 'home.cta.newGame')}</Button>
           </Link>
         </header>
 
-        <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">Feed</p>
+        <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">{t(lang, 'feed.label')}</p>
         <h1 className="font-display text-5xl font-black leading-[0.9] mb-6">
-          Who&apos;s<br />
-          <span className="italic font-light">on trial?</span>
+          {t(lang, 'feed.title.line1')}<br />
+          <span className="italic font-light">{t(lang, 'feed.title.line2')}</span>
         </h1>
-
-        <Link
-          href="/online"
-          className="block border-2 border-mustard bg-mustard text-bg p-4 mb-6 hover:bg-bg hover:text-mustard transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Radio className="w-5 h-5 flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="font-mono text-[10px] tracking-[0.4em] uppercase opacity-70">
-                Live · up to 10 phones
-              </p>
-              <p className="font-display text-xl font-black leading-tight">
-                Play online — multiplayer
-              </p>
-            </div>
-            <span className="font-display font-black text-2xl leading-none">→</span>
-          </div>
-        </Link>
 
         {(feed?.length ?? 0) > 0 ? (
           <ul className="space-y-2">
             {feed!.map((g) => (
               <li key={g.id}>
-                <Link href={`/game/${g.id}`} className="block border-2 border-line hover:border-fg p-4 transition-colors">
+                <Link href={`/jogo/${g.id}`} className="block border-2 border-line hover:border-fg p-4 transition-colors">
                   <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-2">
                     @{g.player_username} · {new Date(g.created_at).toLocaleString()}
                   </p>
@@ -82,7 +66,7 @@ export default async function HomePage() {
                     'font-mono text-[10px] tracking-widest uppercase',
                     g.declared_answer === 'truth' ? 'text-acid' : 'text-blood'
                   )}>
-                    Claims: {g.declared_answer.toUpperCase()} · Tap to vote
+                    {t(lang, 'feed.item.claims')}: {g.declared_answer.toUpperCase()} · {t(lang, 'feed.item.tapToVote')}
                   </p>
                 </Link>
               </li>
@@ -91,20 +75,11 @@ export default async function HomePage() {
         ) : (
           <div className="border-2 border-line p-6 text-center">
             <p className="font-display text-2xl font-black leading-tight mb-2">
-              No friend games yet.
+              {t(lang, 'feed.empty.title')}
             </p>
             <p className="font-body text-sm text-fg-muted mb-4 leading-snug">
-              Add friends to see their plays here. Or record your own to start.
+              {t(lang, 'feed.empty.subtitle')}
             </p>
             <div className="flex flex-col gap-2">
-              <Link href="/game/select"><Button size="md" fullWidth>Record a game</Button></Link>
-              <Link href="/friends/find"><Button variant="secondary" size="md" fullWidth>Find friends</Button></Link>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="tape-stripes h-3 w-full" />
-    </main>
-  );
-}
+              <Link href="/jogo/select"><Button size="md" fullWidth>{t(lang, 'feed.empty.record')}</Button></Link>
+              

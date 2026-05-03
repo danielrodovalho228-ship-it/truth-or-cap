@@ -29,6 +29,53 @@ const en: Dict = {
   'home.nav.settings': 'Settings',
   'home.nav.daily': 'Daily',
   'home.nav.detector': 'Detector',
+  'home.label.gameBy': '— A game by truthorcap —',
+  'home.cta.startPlaying': 'Start playing',
+  'home.footer.comingSoon': 'Coming soon · 90 sec setup · Free forever',
+
+  // Feed (signed-in home)
+  'feed.label': 'Feed',
+  'feed.title.line1': "Who's",
+  'feed.title.line2': 'on trial?',
+  'feed.empty.title': 'No friend games yet.',
+  'feed.empty.subtitle': 'Add friends to see their plays here. Or record your own to start.',
+  'feed.empty.record': 'Record a game',
+  'feed.empty.find': 'Find friends',
+  'feed.item.claims': 'Claims',
+  'feed.item.tapToVote': 'Tap to vote',
+  'feed.back': '← truthorcap',
+
+  // Select / pick game
+  'select.label': 'Pick a mode',
+  'select.title.line1': "Who's",
+  'select.title.line2': 'playing?',
+  'select.subtitle': 'Filter games by audience. We tone questions accordingly — family stays PG, couples gets honest, friends gets spicy.',
+  'select.audience.family': 'Family',
+  'select.audience.family.tag': 'PG. Kids welcome.',
+  'select.audience.friends': 'Friends',
+  'select.audience.friends.tag': 'Group nights. Default.',
+  'select.audience.couples': 'Couples',
+  'select.audience.couples.tag': 'Date-night honesty.',
+  'select.questionsSuffix': 'questions',
+
+  // Friends / amigos
+  'friends.label': 'Network',
+  'friends.title.line1': 'Your',
+  'friends.title.line2': 'circle.',
+  'friends.empty.title': 'No friends yet.',
+  'friends.empty.subtitle': 'Be the first in your circle. Invite 5 to unlock the leaderboard.',
+  'friends.empty.cta': 'Find friends',
+  'friends.back': '← Home',
+
+  // Settings
+  'settings.label': 'Settings',
+  'settings.title.line1': 'Your',
+  'settings.title.line2': 'controls.',
+  'settings.row.username': 'Username',
+  'settings.row.email': 'Email',
+  'settings.row.streak': 'Streak',
+  'settings.row.streakUnit': 'days',
+  'settings.back': '← Home',
 
   // Auth
   'auth.signin.title.line1': 'Pick up',
@@ -69,50 +116,4 @@ const pt: Dict = {
   'home.cta.signin': 'Já tem conta? Entrar',
   'home.nav.feed': 'Feed',
   'home.nav.friends': 'Amigos',
-  'home.nav.rank': 'Rank',
-  'home.nav.settings': 'Ajustes',
-  'home.nav.daily': 'Hoje',
-  'home.nav.detector': 'Detector',
-
-  'auth.signin.title.line1': 'Volta',
-  'auth.signin.title.line2': 'pro jogo.',
-  'auth.signin.subtitle': 'Cola seu email. A gente manda um link mágico — clicou, entrou.',
-  'auth.signup.title.line1': 'Pega um',
-  'auth.signup.title.line2': 'arroba.',
-  'auth.label.email': 'Email',
-  'auth.label.username': 'Username',
-  'auth.cta.signup': 'Criar conta · Magic link',
-  'auth.cta.signin': 'Entrar · Magic link',
-  'auth.cta.usePassword': 'Usar senha',
-  'auth.cta.useMagicLink': 'Usar magic link',
-
-  'game.declared.label': 'Sua resposta',
-  'game.declared.truth': 'Verdade',
-  'game.declared.cap': 'Cap',
-  'game.cta.record': 'Gravar · 30s',
-  'game.cta.pickFirst': 'Escolhe verdade ou cap →',
-  'game.cta.differentQuestion': 'Outra pergunta',
-  'game.disclaimer': 'Entretenimento · Não é um detector de verdade',
-
-  'daily.qotd.label': 'Pergunta do dia',
-  'daily.qotd.cta': 'Vota e vê o que o mundo pensa.',
-  'daily.qotd.yes': 'Sim',
-  'daily.qotd.no': 'Não',
-  'daily.challenge.label': 'Desafio do dia',
-  'daily.challenge.cta': 'Abrir desafio',
-};
-
-const dictionaries: Record<Lang, Dict> = { en, pt };
-
-export function t(lang: Lang | undefined, key: string): string {
-  const lng: Lang = lang && LANGS.includes(lang) ? lang : DEFAULT_LANG;
-  return dictionaries[lng][key] ?? dictionaries[DEFAULT_LANG][key] ?? key;
-}
-
-/** Detect language from cookie / Accept-Language header / fallback. */
-export function pickLang(input: { cookieLang?: string; acceptLanguage?: string | null }): Lang {
-  if (input.cookieLang && LANGS.includes(input.cookieLang as Lang)) return input.cookieLang as Lang;
-  const al = (input.acceptLanguage ?? '').toLowerCase();
-  if (al.startsWith('pt')) return 'pt';
-  return DEFAULT_LANG;
-}
+  'home.nav.rank': 

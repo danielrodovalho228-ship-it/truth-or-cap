@@ -14,7 +14,8 @@ interface Props {
 export function ShareCard({ sus, question, declared, imageUrl, inviteUrl }: Props) {
   const [copied, setCopied] = useState(false);
 
-  const text = `My SUS LEVEL was ${sus}%. They thought I was ${declared.toUpperCase()}... was it cap?`;
+  const tone = sus >= 75 ? 'They KNEW' : sus >= 55 ? 'Hmm sus' : sus >= 35 ? 'On the fence' : 'Stone cold';
+  const text = `SUS LEVEL ${sus}% - ${tone}. "${question}" - I said ${declared.toUpperCase()}. Was it cap? Roast me at ${inviteUrl}`;
   const fullText = `${text} ${inviteUrl}`;
 
   const downloadImage = async () => {

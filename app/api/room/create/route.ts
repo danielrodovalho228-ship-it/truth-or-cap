@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
 import { createRoom, type RoomMode, type RoomSpice } from '@/lib/rooms';
+import { isPremiumAsync } from '@/lib/admin';
 
 export const runtime = 'nodejs';
 
@@ -30,19 +31,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid spice' }, { status: 400 });
   }
 
-  // Spicy gate: check profile.is_premium. Schema currently has no is_premium
-  // column, so default to denied unless an env override is set for testing.
+  // Spicy gate: only premium users (or override env) can host spicy rooms.
   if (spice === 'spicy') {
-    const admin = createServiceRoleClient();
-    const { data: profile } = await admin
-      .from('profiles')
-      .select('is_premium')
-      .eq('id', user.id)
-      .maybeSingle();
-    const allowed = (profile as { is_premium?: boolean } | null)?.is_premium === true
+    const allowed = (await isPremiumAsync(user.id))
       || process.env.ALLOW_SPICY_FOR_ALL === '1';
     if (!allowed) {
-      return NextResponse.json({ error: 'Spicy pack requires Premium' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Spicy pack requires Premium', upsellUrl: '/premium' },
+        { status: 403 },
+      );
     }
   }
 

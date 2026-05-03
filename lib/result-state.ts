@@ -7,7 +7,7 @@ export function votedCookieName(gameId: string): string {
 }
 
 /**
- * Pure helper used by /game/[id]/page.tsx to figure out which view state
+ * Pure helper used by /jogo/[id]/page.tsx to figure out which view state
  * the current request belongs to. Keeps the page component clean.
  */
 export function detectViewState({

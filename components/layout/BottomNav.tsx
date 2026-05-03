@@ -15,15 +15,15 @@ interface NavItem {
 const ITEMS: NavItem[] = [
   { href: '/home', label: 'Home', icon: Home, match: (p) => p === '/home' || p === '/' },
   { href: '/challenge', label: 'Daily', icon: Calendar, match: (p) => p.startsWith('/challenge') || p.startsWith('/qotd') },
-  { href: '/game/select', label: 'Detector', icon: Mic, match: (p) => p.startsWith('/game') },
-  { href: '/friends', label: 'Friends', icon: Users, match: (p) => p.startsWith('/friends') || p === '/leaderboard' },
+  { href: '/jogo/select', label: 'Detector', icon: Mic, match: (p) => p.startsWith('/jogo') },
+  { href: '/amigos', label: 'Friends', icon: Users, match: (p) => p.startsWith('/amigos') || p === '/leaderboard' },
   { href: '/settings', label: 'Profile', icon: User, match: (p) => p.startsWith('/settings') || p.startsWith('/perfil') },
 ];
 
 const HIDDEN_ROUTES = [
   '/auth',
   '/onboarding',
-  '/game/new', // recorder takes full screen
+  '/jogo/novo', // recorder takes full screen
   '/i/',
   '/terms',
   '/privacy',
@@ -55,7 +55,7 @@ export function BottomNav({ signedIn }: BottomNavProps) {
               <Link
                 href={item.href}
                 className={cn(
-                  'flex flex-col items-center gap-0.5 py-2 transition-colors',
+                  'flex flex-col items-center gap-0.5 py-3 min-h-[48px] transition-colors',
                   active ? 'text-mustard' : 'text-fg-muted hover:text-fg'
                 )}
                 aria-current={active ? 'page' : undefined}
