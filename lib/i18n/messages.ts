@@ -59,6 +59,32 @@ const en: Dict = {
   'daily.qotd.no': 'No',
   'daily.challenge.label': "Today's challenge",
   'daily.challenge.cta': 'Open challenge',
+
+  // Feed (shared)
+  'feed.back': '← truthorcap',
+
+  // Game select (/jogo/select)
+  'select.label': 'Pick a mode',
+  'select.title.line1': "Who's",
+  'select.title.line2': 'playing?',
+  'select.subtitle':
+    'Filter games by audience. We tone questions accordingly — family stays PG, couples gets honest, friends gets spicy.',
+  'select.audience.family': 'Family',
+  'select.audience.family.tag': 'PG. Kids welcome.',
+  'select.audience.friends': 'Friends',
+  'select.audience.friends.tag': 'Group nights. Default.',
+  'select.audience.couples': 'Couples',
+  'select.audience.couples.tag': 'Date-night honesty.',
+  'select.questionsSuffix': 'questions',
+
+  // Friends (/amigos)
+  'friends.back': '← Home',
+  'friends.label': 'Network',
+  'friends.title.line1': 'Your',
+  'friends.title.line2': 'circle.',
+  'friends.empty.title': 'No friends yet.',
+  'friends.empty.subtitle': 'Be the first in your circle. Invite 5 to unlock the leaderboard.',
+  'friends.empty.cta': 'Find friends',
 };
 
 const pt: Dict = {
@@ -100,6 +126,29 @@ const pt: Dict = {
   'daily.qotd.no': 'Não',
   'daily.challenge.label': 'Desafio do dia',
   'daily.challenge.cta': 'Abrir desafio',
+
+  'feed.back': '← truthorcap',
+
+  'select.label': 'Escolhe o modo',
+  'select.title.line1': 'Quem',
+  'select.title.line2': 'tá jogando?',
+  'select.subtitle':
+    'Filtra os jogos por público. A gente ajusta as perguntas — família fica leve, casal fica honesto, amigos fica picante.',
+  'select.audience.family': 'Família',
+  'select.audience.family.tag': 'PG. Pode levar criança.',
+  'select.audience.friends': 'Amigos',
+  'select.audience.friends.tag': 'Noite de grupo. Padrão.',
+  'select.audience.couples': 'Casais',
+  'select.audience.couples.tag': 'Honestidade de casal.',
+  'select.questionsSuffix': 'perguntas',
+
+  'friends.back': '← Início',
+  'friends.label': 'Rede',
+  'friends.title.line1': 'Seu',
+  'friends.title.line2': 'círculo.',
+  'friends.empty.title': 'Sem amigos ainda.',
+  'friends.empty.subtitle': 'Seja o primeiro do seu círculo. Convida 5 pra liberar o ranking.',
+  'friends.empty.cta': 'Procurar amigos',
 };
 
 const dictionaries: Record<Lang, Dict> = { en, pt };
