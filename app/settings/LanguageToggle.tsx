@@ -1,36 +1,42 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { Lang } from '@/lib/i18n/messages';
+import { localizePath } from '@/lib/i18n/paths';
 
 interface Props {
   initial: Lang;
 }
 
 export function LanguageToggle({ initial }: Props) {
-  const router = useRouter();
   const [active, setActive] = useState<Lang>(initial);
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     setActive(initial);
   }, [initial]);
 
-  const setLang = (lang: Lang) => {
+  const setLang = async (lang: Lang) => {
     if (lang === active || pending) return;
-    setActive(lang);
-    startTransition(async () => {
-      try {
-        await fetch('/api/lang', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lang }),
-        });
-      } catch { /* offline — server cookie will be set on next request */ }
-      router.refresh();
-    });
+    setPending(true);
+    try {
+      await fetch('/api/lang', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lang }),
+      });
+    } catch {
+      /* offline — best-effort, hard reload still picks up the cookie next time */
+    }
+    // Hard reload to the localized version of the current page. This bypasses
+    // React's transition state (avoids the freeze users reported), forces a
+    // fresh server render with the new cookie, and swaps EN/PT route segments
+    // in one shot (e.g. /amigos → /friends when switching to EN).
+    if (typeof window !== 'undefined') {
+      const next = localizePath(window.location.pathname, lang) + window.location.search + window.location.hash;
+      window.location.assign(next);
+    }
   };
 
   return (
@@ -45,6 +51,7 @@ export function LanguageToggle({ initial }: Props) {
           subtitle="English"
           flag="🇺🇸"
           active={active === 'en'}
+          disabled={pending}
           onClick={() => setLang('en')}
         />
         <Option
@@ -52,6 +59,7 @@ export function LanguageToggle({ initial }: Props) {
           subtitle="Português"
           flag="🇧🇷"
           active={active === 'pt'}
+          disabled={pending}
           onClick={() => setLang('pt')}
         />
       </div>
@@ -64,12 +72,14 @@ function Option({
   subtitle,
   flag,
   active,
+  disabled,
   onClick,
 }: {
   label: string;
   subtitle: string;
   flag: string;
   active: boolean;
+  disabled?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -77,9 +87,10 @@ function Option({
       type="button"
       role="radio"
       aria-checked={active}
+      disabled={disabled}
       onClick={onClick}
       className={cn(
-        'border-2 py-3 px-3 flex items-center gap-3 transition-colors',
+        'border-2 py-3 px-3 flex items-center gap-3 transition-colors disabled:opacity-60',
         active
           ? 'border-mustard bg-mustard text-bg'
           : 'border-line text-fg hover:border-mustard'

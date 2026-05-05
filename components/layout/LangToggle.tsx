@@ -1,8 +1,8 @@
 'use client';
 
-import { useTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { LANGS, type Lang } from '@/lib/i18n/messages';
+import { localizePath } from '@/lib/i18n/paths';
 import { cn } from '@/lib/utils';
 
 interface LangToggleProps {
@@ -10,19 +10,24 @@ interface LangToggleProps {
 }
 
 export function LangToggle({ current }: LangToggleProps) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
 
-  const swap = (target: Lang) => {
-    if (target === current) return;
-    startTransition(async () => {
+  const swap = async (target: Lang) => {
+    if (target === current || pending) return;
+    setPending(true);
+    try {
       await fetch('/api/lang', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lang: target }),
       });
-      router.refresh();
-    });
+    } catch {
+      /* best-effort */
+    }
+    if (typeof window !== 'undefined') {
+      const next = localizePath(window.location.pathname, target) + window.location.search + window.location.hash;
+      window.location.assign(next);
+    }
   };
 
   return (

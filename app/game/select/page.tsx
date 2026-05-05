@@ -47,8 +47,8 @@ export default async function SelectGamePage({
           <span className="italic font-light">playing?</span>
         </h1>
         <p className="font-body text-base text-fg-muted leading-relaxed mb-8 max-w-sm">
-          Filter games by audience. We tone questions accordingly — family stays PG, couples gets
-          honest, friends gets spicy.
+          Filter games by audience. We tone questions accordingly — family stays PG, couples get
+          honest, friends get spicy.
         </p>
 
         {/* Audience filter */}

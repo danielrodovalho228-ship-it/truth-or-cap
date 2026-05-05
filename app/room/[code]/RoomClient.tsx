@@ -37,10 +37,21 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
   useEffect(() => {
     try {
       const id = window.localStorage.getItem(`tlc:player:${room.code}`);
-      if (id) setMyPlayerId(id);
+      // Only trust the cached player id if it actually belongs to this room
+      // AND that player hasn't left. Otherwise force the JoinGate so guests
+      // arriving via a shared link always enter their name first, even if
+      // their browser has stale data from an unrelated room.
+      if (id) {
+        const stillHere = initialPlayers.some((p) => p.id === id && !p.left_at);
+        if (stillHere) {
+          setMyPlayerId(id);
+        } else {
+          try { window.localStorage.removeItem(`tlc:player:${room.code}`); } catch { /* */ }
+        }
+      }
     } catch { /* */ }
     setJoinChecked(true);
-  }, [room.code]);
+  }, [room.code, initialPlayers]);
 
   // Realtime: rooms, room_players, room_rounds, round_votes.
   useEffect(() => {
@@ -210,19 +221,13 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
     } catch { /* */ }
   };
 
-  const openShare = async () => {
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-      try {
-        await navigator.share({
-          title: 'Truth or Cap',
-          text: 'Join my Truth or Cap game! 🎭',
-          url: shareUrl(),
-        });
-        return;
-      } catch {
-        // User dismissed or unsupported — fall through to modal.
-      }
-    }
+  // Always show our own modal first. The native share sheet has a couple of
+  // gotchas: on desktop it doesn't exist, on iOS Safari the user can dismiss
+  // it without us ever knowing whether they shared, and on the very first
+  // click after page load it sometimes silently NoOps (the "two clicks
+  // needed" bug from QA). Our modal includes a Share button that calls
+  // navigator.share for users who want it.
+  const openShare = () => {
     setShareOpen(true);
   };
 
@@ -497,7 +502,7 @@ function ShareSheet({ roomCode, shareUrl, shareMessage, copied, onCopy, onClose 
   const copyForApp = async (label: string) => {
     try {
       await navigator.clipboard.writeText(shareMessage);
-      setHint(`Link copied — paste it in your ${label} story or DM`);
+      setHint(`Link copied! Paste it on ${label}.`);
       setTimeout(() => setHint(null), 2500);
     } catch {
       setHint('Could not copy link');

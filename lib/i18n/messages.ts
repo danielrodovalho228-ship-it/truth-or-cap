@@ -30,6 +30,13 @@ const en: Dict = {
   'home.nav.daily': 'Daily',
   'home.nav.detector': 'Detector',
 
+  // Bottom nav (BottomNav.tsx)
+  'nav.home': 'Home',
+  'nav.daily': 'Daily',
+  'nav.detector': 'Detector',
+  'nav.friends': 'Friends',
+  'nav.profile': 'Profile',
+
   // Auth
   'auth.signin.title.line1': 'Pick up',
   'auth.signin.title.line2': 'where you left.',
@@ -68,7 +75,7 @@ const en: Dict = {
   'select.title.line1': "Who's",
   'select.title.line2': 'playing?',
   'select.subtitle':
-    'Filter games by audience. We tone questions accordingly — family stays PG, couples gets honest, friends gets spicy.',
+    'Filter games by audience. We tone questions accordingly — family stays PG, couples get honest, friends get spicy.',
   'select.audience.family': 'Family',
   'select.audience.family.tag': 'PG. Kids welcome.',
   'select.audience.friends': 'Friends',
@@ -99,6 +106,12 @@ const pt: Dict = {
   'home.nav.settings': 'Ajustes',
   'home.nav.daily': 'Hoje',
   'home.nav.detector': 'Detector',
+
+  'nav.home': 'Início',
+  'nav.daily': 'Hoje',
+  'nav.detector': 'Detector',
+  'nav.friends': 'Amigos',
+  'nav.profile': 'Perfil',
 
   'auth.signin.title.line1': 'Volta',
   'auth.signin.title.line2': 'pro jogo.',

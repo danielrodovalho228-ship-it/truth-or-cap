@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Calendar, Mic, Users, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t, type Lang } from '@/lib/i18n/messages';
+import { navPath } from '@/lib/i18n/paths';
 
 interface NavItem {
   href: string;
@@ -12,18 +14,11 @@ interface NavItem {
   match: (path: string) => boolean;
 }
 
-const ITEMS: NavItem[] = [
-  { href: '/home', label: 'Home', icon: Home, match: (p) => p === '/home' || p === '/' },
-  { href: '/challenge', label: 'Daily', icon: Calendar, match: (p) => p.startsWith('/challenge') || p.startsWith('/qotd') },
-  { href: '/jogo/select', label: 'Detector', icon: Mic, match: (p) => p.startsWith('/jogo') },
-  { href: '/amigos', label: 'Friends', icon: Users, match: (p) => p.startsWith('/amigos') || p === '/leaderboard' },
-  { href: '/settings', label: 'Profile', icon: User, match: (p) => p.startsWith('/settings') || p.startsWith('/perfil') },
-];
-
 const HIDDEN_ROUTES = [
   '/auth',
   '/onboarding',
   '/jogo/novo', // recorder takes full screen
+  '/game/new',
   '/i/',
   '/terms',
   '/privacy',
@@ -32,14 +27,48 @@ const HIDDEN_ROUTES = [
 
 interface BottomNavProps {
   signedIn: boolean;
+  lang: Lang;
 }
 
-export function BottomNav({ signedIn }: BottomNavProps) {
+export function BottomNav({ signedIn, lang }: BottomNavProps) {
   const path = usePathname();
 
   // Don't show until user is signed in.
   if (!signedIn) return null;
   if (HIDDEN_ROUTES.some((r) => path?.startsWith(r))) return null;
+
+  const items: NavItem[] = [
+    {
+      href: navPath.home(),
+      label: t(lang, 'nav.home'),
+      icon: Home,
+      match: (p) => p === '/home' || p === '/',
+    },
+    {
+      href: navPath.daily(),
+      label: t(lang, 'nav.daily'),
+      icon: Calendar,
+      match: (p) => p.startsWith('/challenge') || p.startsWith('/qotd') || p.startsWith('/daily'),
+    },
+    {
+      href: navPath.detector(lang),
+      label: t(lang, 'nav.detector'),
+      icon: Mic,
+      match: (p) => p.startsWith('/jogo') || p.startsWith('/game') || p.startsWith('/detector'),
+    },
+    {
+      href: navPath.friends(lang),
+      label: t(lang, 'nav.friends'),
+      icon: Users,
+      match: (p) => p.startsWith('/amigos') || p.startsWith('/friends') || p === '/leaderboard',
+    },
+    {
+      href: navPath.profile(),
+      label: t(lang, 'nav.profile'),
+      icon: User,
+      match: (p) => p.startsWith('/settings') || p.startsWith('/perfil') || p.startsWith('/profile'),
+    },
+  ];
 
   return (
     <nav
@@ -47,7 +76,7 @@ export function BottomNav({ signedIn }: BottomNavProps) {
       aria-label="Primary"
     >
       <ul className="grid grid-cols-5 max-w-md mx-auto">
-        {ITEMS.map((item) => {
+        {items.map((item) => {
           const active = item.match(path ?? '');
           const Icon = item.icon;
           return (
