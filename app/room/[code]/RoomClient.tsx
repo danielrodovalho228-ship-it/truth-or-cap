@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
-import { Crown, Users, Copy, Play, Clock, Mic, Square, CheckCircle2, XCircle } from 'lucide-react';
+import { Crown, Users, Copy, Play, Clock, Mic, Square, CheckCircle2, XCircle, Share2, X, MessageCircle, Music2, Instagram, Twitter, LogIn } from 'lucide-react';
 import type { Room, RoomPlayer, RoomRound, RoundVote } from '@/lib/rooms';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,8 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [presentIds, setPresentIds] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [joinChecked, setJoinChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -37,6 +39,7 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
       const id = window.localStorage.getItem(`tlc:player:${room.code}`);
       if (id) setMyPlayerId(id);
     } catch { /* */ }
+    setJoinChecked(true);
   }, [room.code]);
 
   // Realtime: rooms, room_players, room_rounds, round_votes.
@@ -196,14 +199,46 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
     });
   };
 
+  const shareUrl = (): string => `${window.location.origin}/room/${room.code}`;
+  const shareMessage = (): string => `Join my Truth or Cap game! 🎭 ${shareUrl()}`;
+
   const copyLink = async () => {
     try {
-      const url = `${window.location.origin}/room/${room.code}`;
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareUrl());
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch { /* */ }
   };
+
+  const openShare = async () => {
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: 'Truth or Cap',
+          text: 'Join my Truth or Cap game! 🎭',
+          url: shareUrl(),
+        });
+        return;
+      } catch {
+        // User dismissed or unsupported — fall through to modal.
+      }
+    }
+    setShareOpen(true);
+  };
+
+  if (joinChecked && !myPlayerId) {
+    return (
+      <JoinGate
+        roomCode={room.code}
+        onJoined={(playerId) => {
+          setMyPlayerId(playerId);
+          try {
+            window.localStorage.setItem(`tlc:player:${room.code}`, playerId);
+          } catch { /* */ }
+        }}
+      />
+    );
+  }
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -225,11 +260,11 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
             {room.code}
           </h1>
           <button
-            onClick={copyLink}
+            onClick={openShare}
             className="border-2 border-line hover:border-fg px-3 py-2 font-mono text-[10px] tracking-widest uppercase text-fg flex items-center gap-1.5 transition-colors"
             type="button"
           >
-            <Copy className="w-3.5 h-3.5" /> {copied ? 'Copied' : 'Copy link'}
+            <Share2 className="w-3.5 h-3.5" /> Share
           </button>
         </div>
 
@@ -332,7 +367,252 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
       </div>
 
       <div className="tape-stripes h-3 w-full" />
+
+      {shareOpen ? (
+        <ShareSheet
+          roomCode={room.code}
+          shareUrl={shareUrl()}
+          shareMessage={shareMessage()}
+          copied={copied}
+          onCopy={copyLink}
+          onClose={() => setShareOpen(false)}
+        />
+      ) : null}
     </main>
+  );
+}
+
+interface JoinGateProps {
+  roomCode: string;
+  onJoined: (playerId: string) => void;
+}
+
+function JoinGate({ roomCode, onJoined }: JoinGateProps) {
+  const [name, setName] = useState('');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const cached = window.localStorage.getItem('tlc:displayName');
+      if (cached) setName(cached);
+    } catch { /* */ }
+  }, []);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError('Type your name to join');
+      return;
+    }
+    setPending(true);
+    try {
+      const res = await fetch('/api/room/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: roomCode, displayName: trimmed }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? 'Failed to join');
+      try {
+        window.localStorage.setItem('tlc:displayName', trimmed);
+      } catch { /* */ }
+      onJoined(j.player.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not join room');
+      setPending(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen flex flex-col">
+      <div className="tape-stripes h-3 w-full" />
+      <div className="flex-1 px-6 py-8 max-w-md mx-auto w-full flex flex-col justify-center">
+        <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">
+          Room invite
+        </p>
+        <h1 className="font-display text-5xl font-black leading-[0.9] mb-2">
+          Join<br />
+          <span className="italic font-light">{roomCode}.</span>
+        </h1>
+        <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-8">
+          Enter your name to join the lobby.
+        </p>
+
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label className="block font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted mb-2">
+              Your name
+            </label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value.slice(0, 20))}
+              placeholder="What should we call you?"
+              autoFocus
+              className="w-full px-4 py-3 bg-bg-card border-2 border-line focus:border-mustard outline-none text-fg placeholder:text-fg-muted font-display"
+              maxLength={20}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={pending}
+            className="w-full border-2 border-mustard bg-mustard text-bg font-display font-black text-base uppercase tracking-tight py-4 inline-flex items-center justify-center gap-2 hover:bg-bg hover:text-mustard transition-colors disabled:opacity-60"
+          >
+            <LogIn className="w-5 h-5" />
+            {pending ? 'Joining…' : 'Join room'}
+          </button>
+        </form>
+
+        {error ? (
+          <p
+            className="mt-4 px-4 py-3 border-2 border-blood bg-blood/10 text-blood font-mono text-xs tracking-widest uppercase"
+            role="alert"
+          >
+            {error}
+          </p>
+        ) : null}
+      </div>
+      <div className="tape-stripes h-3 w-full" />
+    </main>
+  );
+}
+
+interface ShareSheetProps {
+  roomCode: string;
+  shareUrl: string;
+  shareMessage: string;
+  copied: boolean;
+  onCopy: () => void;
+  onClose: () => void;
+}
+
+function ShareSheet({ roomCode, shareUrl, shareMessage, copied, onCopy, onClose }: ShareSheetProps) {
+  const [hint, setHint] = useState<string | null>(null);
+
+  const waUrl = `https://wa.me/?text=${encodeURIComponent(shareMessage)}`;
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent('Join my Truth or Cap game! 🎭')}&url=${encodeURIComponent(shareUrl)}`;
+
+  const copyForApp = async (label: string) => {
+    try {
+      await navigator.clipboard.writeText(shareMessage);
+      setHint(`Link copied — paste it in your ${label} story or DM`);
+      setTimeout(() => setHint(null), 2500);
+    } catch {
+      setHint('Could not copy link');
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-fg/40 flex items-end sm:items-center justify-center"
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-md bg-bg-card border-t-2 sm:border-2 border-fg p-6 animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard">
+            Invite to {roomCode}
+          </p>
+          <button
+            onClick={onClose}
+            type="button"
+            className="text-fg-muted hover:text-fg"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <h2 className="font-display text-2xl font-black leading-tight mb-5">
+          Share the room.
+        </h2>
+
+        <div className="grid grid-cols-4 gap-3 mb-5">
+          <ShareButton
+            label="WhatsApp"
+            color="acid"
+            icon={<MessageCircle className="w-5 h-5" />}
+            href={waUrl}
+          />
+          <ShareButton
+            label="X"
+            color="fg"
+            icon={<Twitter className="w-5 h-5" />}
+            href={xUrl}
+          />
+          <ShareButton
+            label="Instagram"
+            color="blood"
+            icon={<Instagram className="w-5 h-5" />}
+            onClick={() => copyForApp('Instagram')}
+          />
+          <ShareButton
+            label="TikTok"
+            color="mustard"
+            icon={<Music2 className="w-5 h-5" />}
+            onClick={() => copyForApp('TikTok')}
+          />
+        </div>
+
+        <button
+          onClick={onCopy}
+          type="button"
+          className="w-full border-2 border-line hover:border-fg px-4 py-3 font-mono text-[10px] tracking-widest uppercase text-fg flex items-center justify-center gap-2 transition-colors"
+        >
+          <Copy className="w-3.5 h-3.5" />
+          {copied ? 'Copied' : 'Copy link'}
+        </button>
+
+        {hint ? (
+          <p className="mt-3 font-mono text-[10px] tracking-widest uppercase text-fg-muted text-center">
+            {hint}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ShareButton({
+  label,
+  color,
+  icon,
+  href,
+  onClick,
+}: {
+  label: string;
+  color: 'acid' | 'blood' | 'mustard' | 'fg';
+  icon: React.ReactNode;
+  href?: string;
+  onClick?: () => void;
+}) {
+  const colorClass: Record<typeof color, string> = {
+    acid: 'border-acid text-acid hover:bg-acid hover:text-bg',
+    blood: 'border-blood text-blood hover:bg-blood hover:text-bg',
+    mustard: 'border-mustard text-mustard hover:bg-mustard hover:text-bg',
+    fg: 'border-fg text-fg hover:bg-fg hover:text-bg',
+  };
+  const className = cn(
+    'flex flex-col items-center gap-1.5 border-2 py-3 transition-colors',
+    colorClass[color],
+  );
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer noopener" className={className}>
+        {icon}
+        <span className="font-mono text-[9px] tracking-widest uppercase">{label}</span>
+      </a>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={className}>
+      {icon}
+      <span className="font-mono text-[9px] tracking-widest uppercase">{label}</span>
+    </button>
   );
 }
 

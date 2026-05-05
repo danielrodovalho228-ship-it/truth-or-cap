@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { requireProfile } from '@/lib/auth/guard';
+import { getLang } from '@/lib/i18n/server';
+import { LanguageToggle } from './LanguageToggle';
 
 export const metadata: Metadata = {
   title: 'Settings · Truth or Cap',
@@ -9,6 +11,7 @@ export const metadata: Metadata = {
 
 export default async function SettingsPage() {
   const { user, profile } = await requireProfile('/settings');
+  const lang = await getLang();
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -28,6 +31,10 @@ export default async function SettingsPage() {
           <Row label="Username" value={`@${profile.username}`} />
           <Row label="Email" value={user.email ?? '—'} />
           <Row label="Streak" value={`${profile.current_streak} days`} />
+        </div>
+
+        <div className="mb-4">
+          <LanguageToggle initial={lang} />
         </div>
 
         <div className="space-y-2">
