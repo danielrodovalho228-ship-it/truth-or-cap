@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(IP_HASH_SALT=dummy npm run build)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git reset *)",
+      "Bash(git restore *)",
+      "Bash(git fetch *)"
+    ]
+  }
+}
