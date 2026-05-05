@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'AI lie detector game. Spot the cap.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#fef3f8',
-    theme_color: '#ec4899',
+    background_color: '#f4f6fb',
+    theme_color: '#5b6cf6',
     orientation: 'portrait',
     icons: [
       { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

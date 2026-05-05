@@ -27,7 +27,7 @@ function colorFor(sus: number): string {
 
 function fireConfetti(sus: number) {
   if (typeof window === 'undefined') return;
-  const colors = sus >= 70 ? ['#dc2626', '#fbbf24'] : ['#a8ff00', '#fef08a'];
+  const colors = sus >= 70 ? ['#f87171', '#5b6cf6'] : ['#14b8a6', '#5b6cf6'];
   void confetti({
     particleCount: 80,
     spread: 70,

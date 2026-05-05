@@ -109,10 +109,15 @@ export function t(lang: Lang | undefined, key: string): string {
   return dictionaries[lng][key] ?? dictionaries[DEFAULT_LANG][key] ?? key;
 }
 
-/** Detect language from cookie / Accept-Language header / fallback. */
+/**
+ * Resolve the active language.
+ *
+ * English is the unconditional default. We only honor an explicit user choice
+ * persisted in the `lang` cookie (set by Settings → Language). The browser's
+ * Accept-Language header is intentionally ignored so first-time visitors
+ * always land in English regardless of OS locale.
+ */
 export function pickLang(input: { cookieLang?: string; acceptLanguage?: string | null }): Lang {
   if (input.cookieLang && LANGS.includes(input.cookieLang as Lang)) return input.cookieLang as Lang;
-  const al = (input.acceptLanguage ?? '').toLowerCase();
-  if (al.startsWith('pt')) return 'pt';
   return DEFAULT_LANG;
 }
