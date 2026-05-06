@@ -112,7 +112,7 @@ export async function notifyEmail<K extends NotificationKind>(
 
   // 5. Send via Resend
   if (!RESEND_KEY) {
-    console.warn('[notify] RESEND_API_KEY missing — would send', kind, 'to', recipient.email);
+    console.warn('[notify] RESEND_API_KEY missing — would send', kind, 'to', '<redacted>');
     if (logRow) {
       await admin
         .from('notification_log')
