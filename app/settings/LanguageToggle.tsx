@@ -7,9 +7,11 @@ import { localizePath } from '@/lib/i18n/paths';
 
 interface Props {
   initial: Lang;
+  title: string;
+  subtitle: string;
 }
 
-export function LanguageToggle({ initial }: Props) {
+export function LanguageToggle({ initial, title, subtitle }: Props) {
   const [active, setActive] = useState<Lang>(initial);
   const [pending, setPending] = useState(false);
 
@@ -41,11 +43,11 @@ export function LanguageToggle({ initial }: Props) {
 
   return (
     <div className="border-2 border-line p-3">
-      <p className="font-display text-base font-black uppercase tracking-tight mb-1">Language</p>
+      <p className="font-display text-base font-black uppercase tracking-tight mb-1">{title}</p>
       <p className="font-mono text-[10px] tracking-widest uppercase opacity-70 mb-3">
-        Pick your interface language
+        {subtitle}
       </p>
-      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Language">
+      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={title}>
         <Option
           label="EN"
           subtitle="English"
