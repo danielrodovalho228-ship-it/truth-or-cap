@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { GameBanner } from '@/components/layout/GameBanner';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/Button';
 
@@ -40,6 +41,7 @@ export default async function ChallengePage() {
       <div className="tape-stripes h-3 w-full" />
 
       <div className="flex-1 px-6 py-8 max-w-md mx-auto w-full">
+        <GameBanner variant="hero" subtitle="Daily challenge" />
         <Link href="/" className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg mb-6 inline-block">
           ← Home
         </Link>

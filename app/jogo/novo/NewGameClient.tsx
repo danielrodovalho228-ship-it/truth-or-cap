@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
+import { GameBanner } from '@/components/layout/GameBanner';
 import { motion } from 'framer-motion';
 import { Dices, Video } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -49,6 +51,7 @@ export function NewGameClient({
       <div className="tape-stripes h-3 w-full" />
 
       <div className="flex-1 flex flex-col px-6 py-8 max-w-md mx-auto w-full">
+        <GameBanner subtitle="Record your answer" />
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">
           {opponent ? `Challenge from @${opponent}` : gameTypeLabel}
         </p>
@@ -62,6 +65,15 @@ export function NewGameClient({
           Pick a question, declare your answer (truth or cap), then record up to 30 seconds. The AI
           analyzes voice, face, and language. Friends vote. Lies get exposed.
         </p>
+
+        <Image
+          src="/illustrations/mic-hero.svg"
+          alt=""
+          width={120}
+          height={100}
+          className="mx-auto mb-4"
+          unoptimized
+        />
 
         {/* Question card */}
         <div className="border-2 border-fg p-5 mb-3">

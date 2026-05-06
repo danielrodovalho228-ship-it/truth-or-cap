@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { GameBanner } from '@/components/layout/GameBanner';
 import { requireUser } from '@/lib/auth/guard';
 import { ALL_GAME_TYPES, type Audience } from '@/lib/game-types';
 import { getLang } from '@/lib/i18n/server';
@@ -34,6 +35,7 @@ export default async function SelectGamePage({
       <div className="tape-stripes h-3 w-full" />
 
       <div className="flex-1 flex flex-col px-6 py-8 max-w-md mx-auto w-full">
+        <GameBanner subtitle="Pick your game" />
         <Link
           href="/"
           className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg mb-6"

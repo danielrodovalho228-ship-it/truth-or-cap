@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
+import { GameBanner } from '@/components/layout/GameBanner';
 import { Crown, Users, Copy, Play, Clock, Mic, Square, CheckCircle2, XCircle, Share2, X, MessageCircle, Music2, Instagram, Twitter, LogIn } from 'lucide-react';
 import type { Room, RoomPlayer, RoomRound, RoundVote } from '@/lib/rooms';
 import { Button } from '@/components/ui/Button';
@@ -250,6 +251,7 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
       <div className="tape-stripes h-3 w-full" />
 
       <div className="flex-1 px-6 py-8 max-w-md mx-auto w-full pb-24">
+        <GameBanner subtitle={`Room ${room.code}`} />
         <Link
           href="/online"
           className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg mb-6 inline-block"

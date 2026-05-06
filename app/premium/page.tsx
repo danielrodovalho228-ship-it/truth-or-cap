@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 import { SubscribeButton } from './SubscribeButton';
 
@@ -21,6 +22,14 @@ export default async function PremiumPage({ searchParams }: Props) {
     <main className="min-h-screen bg-gradient-to-b from-pink-50 via-rose-50 to-violet-50 px-5 py-12 pb-32">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
+          <Image
+            src="/illustrations/confetti.svg"
+            alt=""
+            width={400}
+            height={100}
+            className="opacity-60 mx-auto mb-2"
+            unoptimized
+          />
           <div className="text-7xl mb-3 leading-none" aria-hidden="true">💎</div>
           <h1 className="font-display text-4xl font-black text-violet-900 leading-tight tracking-tight">
             Truth or Cap<br />

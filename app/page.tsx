@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
@@ -21,6 +22,15 @@ export default async function HomePage() {
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted mb-6">
           — A game by truthorcap —
         </p>
+
+        <Image
+          src="/illustrations/mic-hero.svg"
+          alt=""
+          width={240}
+          height={200}
+          className="mx-auto mb-6"
+          unoptimized
+        />
 
         {/* Big serif headline */}
         <h1 className="font-display text-7xl md:text-8xl font-black leading-[0.85] tracking-tight text-center mb-2">
@@ -67,7 +77,7 @@ export default async function HomePage() {
             </Link>
           </div>
         ) : (
-          <div className="flex flex-col gap-3 w-full max-w-xs">
+          <div className="flex flex-col gap-3 w-full max-w-xs rounded-2xl border-2 border-line p-4 bg-gradient-to-br from-pink-500/5 to-violet-600/5">
             <Link
               href="/auth/sign-up"
               className="border-2 border-fg bg-fg text-bg px-8 py-4 font-display text-2xl font-black uppercase tracking-tight hover:bg-bg hover:text-fg transition-colors group inline-flex items-center justify-center gap-3"

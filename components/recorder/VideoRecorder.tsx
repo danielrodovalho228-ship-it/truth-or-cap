@@ -261,11 +261,13 @@ export function VideoRecorder({
   if (state.status === 'requesting') {
     return (
       <div role="status" className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center">
-        <Loader2 className="w-10 h-10 text-mustard animate-spin mb-4" aria-hidden="true" />
-        <span className="sr-only">Loading...</span>
-        <p className="font-mono text-xs tracking-widest uppercase text-fg-muted">
-          Allow camera & mic in the browser prompt…
-        </p>
+        <div className="rounded-2xl border-2 border-line bg-gradient-to-br from-pink-500/10 to-violet-600/10 p-8 flex flex-col items-center">
+          <Loader2 className="w-10 h-10 text-mustard animate-spin mb-4" aria-hidden="true" />
+          <span className="sr-only">Loading...</span>
+          <p className="font-mono text-xs tracking-widest uppercase text-fg-muted">
+            Allow camera & mic in the browser prompt…
+          </p>
+        </div>
       </div>
     );
   }

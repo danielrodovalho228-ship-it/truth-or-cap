@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/Button';
@@ -90,9 +91,19 @@ export default async function LeaderboardPage() {
             })}
           </ol>
         ) : (
-          <p className="font-mono text-xs tracking-widest uppercase text-fg-muted">
-            No rankings yet — be the first.
-          </p>
+          <div className="text-center py-8">
+            <Image
+              src="/illustrations/leaderboard-empty.svg"
+              alt=""
+              width={240}
+              height={200}
+              className="mx-auto mb-4"
+              unoptimized
+            />
+            <p className="font-mono text-xs tracking-widest uppercase text-fg-muted">
+              No rankings yet — be the first.
+            </p>
+          </div>
         )}
 
         {!currentUserId ? (

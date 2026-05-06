@@ -74,6 +74,14 @@ export default async function FriendsPage() {
           </ul>
         ) : (
           <div className="border-2 border-line p-6 text-center">
+            <Image
+              src="/illustrations/no-friends.svg"
+              alt=""
+              width={240}
+              height={200}
+              className="mx-auto mb-4"
+              unoptimized
+            />
             <p className="font-display text-2xl font-black leading-tight mb-2">
               {t(lang, 'friends.empty.title')}
             </p>

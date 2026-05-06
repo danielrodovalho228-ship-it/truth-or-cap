@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Users, Heart, PartyPopper, Leaf, Flame, Plus, LogIn } from 'lucide-react';
+import { GameBanner } from '@/components/layout/GameBanner';
 import type { RoomMode, RoomSpice } from '@/lib/rooms';
 import { cn } from '@/lib/utils';
 
@@ -84,6 +85,7 @@ export function OnlineLobby() {
       <div className="tape-stripes h-3 w-full" />
 
       <div className="flex-1 px-6 py-8 max-w-md mx-auto w-full pb-24">
+        <GameBanner variant="hero" subtitle="Live multiplayer" />
         <Link
           href="/"
           className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg mb-6 inline-block"

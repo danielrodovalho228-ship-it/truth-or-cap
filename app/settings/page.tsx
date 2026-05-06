@@ -27,6 +27,23 @@ export default async function SettingsPage() {
           <span className="italic font-light">controls.</span>
         </h1>
 
+        <div className="flex items-center gap-3 mb-8 p-4 rounded-2xl bg-gradient-to-br from-pink-500/10 to-violet-600/10 border-2 border-line">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-violet-600 text-white font-display font-black text-xl shrink-0">
+            {profile.username.slice(0, 2).toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-black text-lg truncate">@{profile.username}</p>
+            <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted">
+              {profile.current_streak}-day streak
+            </p>
+          </div>
+          {(profile as { is_premium?: boolean }).is_premium ? (
+            <span className="font-mono text-[10px] tracking-widest uppercase font-bold bg-mustard text-bg px-2 py-1 rounded">
+              Premium
+            </span>
+          ) : null}
+        </div>
+
         <div className="space-y-3 mb-8">
           <Row label="Username" value={`@${profile.username}`} />
           <Row label="Email" value={user.email ?? '—'} />
