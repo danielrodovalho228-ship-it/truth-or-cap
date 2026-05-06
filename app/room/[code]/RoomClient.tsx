@@ -789,6 +789,7 @@ function PrompterRecorder({ roundId, playerId }: { roundId: string; playerId: st
       const mr = new MediaRecorder(stream, supported ? { mimeType } : undefined);
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mr.onstop = handleStop;
+      mr.onerror = () => { setError('Recording failed'); stop(); };
       mediaRecorderRef.current = mr;
       mr.start();
       setRecording(true);

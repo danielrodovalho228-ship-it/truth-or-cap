@@ -26,7 +26,7 @@ export function PasswordForm({ mode }: PasswordFormProps) {
     return (
       <div role="status" className="border-2 border-acid p-5">
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-acid mb-2">
-          ✓ Account created
+          <span aria-hidden="true">✓</span> Account created
         </p>
         <p className="font-body text-sm text-fg-muted leading-relaxed">{state.message}</p>
       </div>

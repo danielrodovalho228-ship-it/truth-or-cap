@@ -30,7 +30,7 @@ export function MagicLinkForm({ mode, next = '/' }: MagicLinkFormProps) {
         className="border-2 border-acid p-5 text-fg"
       >
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-acid mb-2">
-          ✓ Link sent
+          <span aria-hidden="true">✓</span> Link sent
         </p>
         <p className="font-display text-2xl leading-tight mb-3">
           Check your inbox.

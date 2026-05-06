@@ -157,10 +157,11 @@ export function VideoRecorder({
 
     // Hard server-side limit is 25MB. Bail early so we don't waste an upload.
     if (blob.size > 25_000_000) {
+      // Keep the preview & camera alive so user can retake without re-granting.
       setState((s) => ({
         ...s,
-        status: 'error',
-        error: 'Recording is over 25MB. Try a shorter take.',
+        status: 'processing',
+        error: `Recording too large (${Math.round(blob.size / 1_000_000)}MB). Try a shorter take.`,
       }));
       return;
     }
@@ -259,8 +260,9 @@ export function VideoRecorder({
 
   if (state.status === 'requesting') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center">
-        <Loader2 className="w-10 h-10 text-mustard animate-spin mb-4" />
+      <div role="status" className="flex flex-col items-center justify-center min-h-[80vh] p-6 text-center">
+        <Loader2 className="w-10 h-10 text-mustard animate-spin mb-4" aria-hidden="true" />
+        <span className="sr-only">Loading...</span>
         <p className="font-mono text-xs tracking-widest uppercase text-fg-muted">
           Allow camera & mic in the browser prompt…
         </p>
@@ -300,6 +302,14 @@ export function VideoRecorder({
         </div>
 
         <div className="px-5 pt-4 pb-6 max-w-md mx-auto w-full space-y-3">
+          {state.error ? (
+            <p
+              role="alert"
+              className="px-4 py-3 border-2 border-blood bg-blood/10 text-blood font-mono text-xs tracking-widest uppercase"
+            >
+              {state.error}
+            </p>
+          ) : null}
           <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted text-center">
             Tap ▶ to hear it. Bad take? Retake. Good? Send it.
           </p>
@@ -381,8 +391,9 @@ export function VideoRecorder({
         )}
 
         {isWorking && (
-          <div className="flex flex-col items-center text-center text-fg">
-            <Loader2 className={cn('w-8 h-8 text-mustard animate-spin mb-2')} />
+          <div role="status" className="flex flex-col items-center text-center text-fg">
+            <Loader2 className={cn('w-8 h-8 text-mustard animate-spin mb-2')} aria-hidden="true" />
+            <span className="sr-only">Loading...</span>
             <p className="font-mono text-xs uppercase tracking-widest text-fg-muted">
               {state.status === 'uploading' ? 'Uploading recording…' : 'Routing to analysis…'}
             </p>

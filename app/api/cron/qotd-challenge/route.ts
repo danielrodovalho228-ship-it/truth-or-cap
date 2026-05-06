@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase/server';
-import { CHALLENGE_QUESTIONS } from '@/lib/questions';
+import { CHALLENGE_QUESTIONS } from '@/lib/questions-server';
 
 export const runtime = 'nodejs';
 

@@ -16,6 +16,14 @@
     {
       "path": "/api/cron/purge-expired-games",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/close-stale-rooms",
+      "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/cleanup-orphan-players",
+      "schedule": "0 3 * * *"
     }
   ],
   "headers": [
@@ -62,5 +70,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "app/api/analyze/route.ts": {
+      "maxDuration": 60
+    }
+  }
 }

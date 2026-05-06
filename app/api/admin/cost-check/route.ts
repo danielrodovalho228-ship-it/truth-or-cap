@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createServiceRoleClient } from '@/lib/supabase/server';
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
+import { isAdminAsync } from '@/lib/admin';
 
 export const runtime = 'nodejs';
 
@@ -18,10 +19,25 @@ export const runtime = 'nodejs';
 const DEFAULT_THRESHOLD = 50;
 
 export async function GET(req: NextRequest) {
-  // Cron auth: Vercel sets `Authorization: Bearer ${CRON_SECRET}` header.
+  // Two auth paths:
+  //  1. Cron: Vercel sets `Authorization: Bearer ${CRON_SECRET}` header.
+  //  2. Admin UI: signed-in user with profiles.is_admin = true.
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = req.headers.get('authorization');
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  const cronAuthorized = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+  let adminAuthorized = false;
+  if (!cronAuthorized && req.headers.get('cookie')) {
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      adminAuthorized = await isAdminAsync(user?.id);
+    } catch {
+      adminAuthorized = false;
+    }
+  }
+
+  if (!cronAuthorized && !adminAuthorized) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

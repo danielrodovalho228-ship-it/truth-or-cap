@@ -91,6 +91,8 @@ export function SusLevelReveal({ susLevel, userVote, declaredAnswer }: SusLevelR
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.3, type: 'spring', stiffness: 220, damping: 18 }}
         className="border-2 border-fg p-6 mb-5"
+        role="status"
+        aria-live="polite"
       >
         <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-1">
           SUS LEVEL
@@ -119,7 +121,7 @@ export function SusLevelReveal({ susLevel, userVote, declaredAnswer }: SusLevelR
             aligned ? 'text-acid' : 'text-blood'
           )}
         >
-          {aligned ? '✓ You aligned with the AI' : '✗ You disagreed with the AI'}
+          {aligned ? (<><span aria-hidden="true">✓</span> You aligned with the AI</>) : (<><span aria-hidden="true">✗</span> You disagreed with the AI</>)}
         </motion.p>
       ) : null}
 

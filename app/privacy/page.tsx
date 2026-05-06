@@ -13,8 +13,12 @@ export default function PrivacyPage() {
         <Link href="/" className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg mb-6 inline-block">Home</Link>
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">Legal</p>
         <h1 className="font-display text-5xl font-black leading-[0.9] mb-2">Privacy Policy</h1>
-        <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-8">
+        {/* TODO: lawyer review before public launch */}
+        <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-1">
           Effective: 2026 - v1.0
+        </p>
+        <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-8">
+          Last updated: 2026-05-03
         </p>
 
         <Section title="What we collect">
@@ -46,6 +50,14 @@ export default function PrivacyPage() {
             <a href="https://www.anthropic.com/privacy" className="underline ml-1">Anthropic</a>.
             Storage + auth via <a href="https://supabase.com/privacy" className="underline">Supabase</a>.
           </p>
+          <p>Other processors that handle limited data on our behalf:</p>
+          <ul>
+            <li><a href="https://stripe.com/privacy" className="underline">Stripe</a> — payments + subscription billing.</li>
+            <li><a href="https://resend.com/legal/privacy-policy" className="underline">Resend</a> — transactional email (magic links, receipts).</li>
+            <li><a href="https://posthog.com/privacy" className="underline">PostHog</a> — product analytics.</li>
+            <li><a href="https://vercel.com/legal/privacy-policy" className="underline">Vercel</a> — hosting + edge delivery.</li>
+            <li><a href="https://www.hostinger.com/privacy-policy" className="underline">Hostinger</a> — DNS provider.</li>
+          </ul>
         </Section>
 
         <Section title="Your rights (LGPD / GDPR)">

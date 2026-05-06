@@ -17,8 +17,12 @@ export default function TermsPage() {
 
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">Legal</p>
         <h1 className="font-display text-5xl font-black leading-[0.9] mb-2">Terms of Service</h1>
+        {/* TODO: lawyer review before public launch */}
+        <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-1">
+          Effective: 2026
+        </p>
         <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-8">
-          Effective: 2026 · ⚠️ Lawyer review required before public launch
+          Last updated: 2026-05-03
         </p>
 
         <Section title="1. The service">

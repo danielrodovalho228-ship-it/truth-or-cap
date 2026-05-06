@@ -98,6 +98,9 @@ export function VoteWidget({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
           >
             <div>
               <div className="flex items-baseline justify-between mb-1">

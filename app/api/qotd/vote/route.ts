@@ -5,6 +5,11 @@ import { rateLimit, VOTES_PER_IP_PER_HOUR, HOUR_MS } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 
+const SALT = process.env.IP_HASH_SALT;
+if (!SALT && process.env.NODE_ENV === 'production') {
+  throw new Error('IP_HASH_SALT required in production');
+}
+
 function clientIp(req: NextRequest): string {
   return (
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -14,7 +19,7 @@ function clientIp(req: NextRequest): string {
 }
 
 function hashIp(ip: string): string {
-  const salt = process.env.IP_HASH_SALT ?? 'truthorcap_fallback_salt';
+  const salt = SALT ?? 'truthorcap_fallback_salt';
   return createHash('sha256').update(`${ip}|${salt}`).digest('hex');
 }
 

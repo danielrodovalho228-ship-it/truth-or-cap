@@ -14,16 +14,21 @@ export default async function ChallengePage() {
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
+  // Defensive: order + limit so duplicate rows don't make .maybeSingle() return null.
   const { data: challenge } = await supabase
     .from('daily_challenge')
     .select('challenge, active_date, created_at')
     .eq('active_date', today)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   const { data: qotd } = await supabase
     .from('question_of_day')
     .select('id, question, yes_count, no_count, active_date')
     .eq('active_date', today)
+    .order('id', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   const total = (qotd?.yes_count ?? 0) + (qotd?.no_count ?? 0);

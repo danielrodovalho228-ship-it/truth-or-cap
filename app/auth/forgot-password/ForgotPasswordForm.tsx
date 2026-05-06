@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import Link from 'next/link';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +19,12 @@ export function ForgotPasswordForm() {
           Check your inbox
         </p>
         <p className="font-body text-sm text-fg-muted leading-relaxed">{state.message}</p>
+        <Link
+          href="/auth/sign-in"
+          className="inline-block mt-4 font-mono text-[10px] tracking-[0.4em] uppercase text-fg underline hover:text-acid"
+        >
+          ← Back to sign in
+        </Link>
       </div>
     );
   }

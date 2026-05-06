@@ -228,8 +228,9 @@ export function VoiceCalibrator({ onComplete }: VoiceCalibratorProps) {
       )}
 
       {status === 'uploading' && (
-        <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-mustard border-t-transparent rounded-full mx-auto mb-3" />
+        <div role="status" className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-mustard border-t-transparent rounded-full mx-auto mb-3" aria-hidden="true" />
+          <span className="sr-only">Loading...</span>
           <p className="font-mono text-xs tracking-widest uppercase text-fg-muted">
             Saving voice signature…
           </p>

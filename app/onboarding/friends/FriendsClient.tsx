@@ -160,8 +160,9 @@ export function FriendsClient() {
       )}
 
       {phase === 'matching' && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-2 border-mustard border-t-transparent rounded-full" />
+        <div role="status" className="flex-1 flex items-center justify-center">
+          <div className="animate-spin w-8 h-8 border-2 border-mustard border-t-transparent rounded-full" aria-hidden="true" />
+          <span className="sr-only">Loading...</span>
         </div>
       )}
 
