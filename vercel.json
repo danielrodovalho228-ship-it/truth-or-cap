@@ -19,7 +19,7 @@
     },
     {
       "path": "/api/cron/close-stale-rooms",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/cleanup-orphan-players",
