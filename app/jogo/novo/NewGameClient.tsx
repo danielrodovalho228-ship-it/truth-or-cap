@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { GameBanner } from '@/components/layout/GameBanner';
 import { motion } from 'framer-motion';
 import { Dices, Video } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { VideoRecorder } from '@/components/recorder/VideoRecorder';
-import { pickQuestionFor, type GameType } from '@/lib/game-types';
+import { pickQuestionFor, type GameType, type GameTheme } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 import type { Vote } from '@/lib/types';
 
@@ -19,6 +18,7 @@ interface NewGameClientProps {
   gameTypeId: GameType;
   gameTypeLabel: string;
   defaultDurationMs: number;
+  theme: GameTheme;
 }
 
 type Phase = 'setup' | 'record';
@@ -31,6 +31,7 @@ export function NewGameClient({
   gameTypeId,
   gameTypeLabel,
   defaultDurationMs,
+  theme,
 }: NewGameClientProps) {
   const [question, setQuestion] = useState(initialQuestion);
   const [declaredAnswer, setDeclaredAnswer] = useState<Vote | null>(null);
@@ -50,8 +51,13 @@ export function NewGameClient({
     <main className="min-h-screen flex flex-col">
       <div className="tape-stripes h-3 w-full" />
 
-      <div className="flex-1 flex flex-col px-6 py-8 max-w-md mx-auto w-full">
-        <GameBanner subtitle="Record your answer" />
+      <div className="flex-1 flex flex-col px-6 py-6 max-w-md mx-auto w-full">
+        <GameBanner
+          variant="hero"
+          theme={theme}
+          title={gameTypeLabel}
+          subtitle={opponent ? `Challenge from @${opponent}` : 'Record your answer'}
+        />
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">
           {opponent ? `Challenge from @${opponent}` : gameTypeLabel}
         </p>
@@ -61,22 +67,18 @@ export function NewGameClient({
           <span className="italic font-light">Maybe truthfully.</span>
         </h1>
 
-        <p className="font-body text-base text-fg-muted leading-relaxed mb-8 max-w-sm">
+        <p className="font-body text-base text-fg-muted leading-relaxed mb-6 max-w-sm">
           Pick a question, declare your answer (truth or cap), then record up to 30 seconds. The AI
           analyzes voice, face, and language. Friends vote. Lies get exposed.
         </p>
 
-        <Image
-          src="/illustrations/mic-hero.svg"
-          alt=""
-          width={120}
-          height={100}
-          className="mx-auto mb-4"
-          unoptimized
-        />
-
-        {/* Question card */}
-        <div className="border-2 border-fg p-5 mb-3">
+        {/* Question card with themed accent */}
+        <div className="rounded-2xl border-2 border-fg p-5 mb-3 relative overflow-hidden bg-bg-card">
+          <span
+            aria-hidden="true"
+            className="absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-20 blur-2xl"
+            style={{ backgroundImage: theme.gradient }}
+          />
           <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted mb-3">
             Question
           </p>

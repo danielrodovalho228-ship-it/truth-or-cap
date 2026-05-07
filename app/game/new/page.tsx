@@ -50,6 +50,7 @@ export default async function NewGamePage({ searchParams }: PageProps) {
       gameTypeId={gameType.id}
       gameTypeLabel={gameType.label}
       defaultDurationMs={gameType.defaultDurationMs}
+      theme={gameType.theme}
     />
   );
 }

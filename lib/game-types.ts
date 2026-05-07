@@ -16,6 +16,23 @@ export type GameType =
 
 export type Audience = 'family' | 'friends' | 'couples';
 
+/**
+ * Visual theme for a game — drives gradient art, emoji icon, and per-game
+ * banner accents. Colors are kept on the same blue / teal / coral palette
+ * (#5b6cf6 / #14b8a6 / #f87171) but mixed differently per game so each
+ * card feels distinct without breaking the brand.
+ */
+export interface GameTheme {
+  /** CSS gradient string used as the card / banner background. */
+  gradient: string;
+  /** Tailwind text class for the secondary accent (used on chips, badges). */
+  accentClass: string;
+  /** Big emoji glyph rendered in the card art tile. */
+  emoji: string;
+  /** Short uppercase eyebrow shown above the title (e.g. "CLASSIC", "DUO"). */
+  eyebrow: string;
+}
+
 export interface GameTypeMeta {
   id: GameType;
   label: string;
@@ -30,6 +47,7 @@ export interface GameTypeMeta {
     mid: string;
     low: string;
   };
+  theme: GameTheme;
 }
 
 // -----------------------------------------------------------------------------
@@ -143,6 +161,12 @@ export const GAME_TYPES: Record<GameType, GameTypeMeta> = {
       mid: 'On the fence.',
       low: 'Probably truth.',
     },
+    theme: {
+      gradient: 'linear-gradient(135deg, #5b6cf6 0%, #8b5cf6 60%, #f87171 100%)',
+      accentClass: 'text-white/90',
+      emoji: '🎙️',
+      eyebrow: 'CLASSIC',
+    },
   },
   never_have_i_ever: {
     id: 'never_have_i_ever',
@@ -157,6 +181,12 @@ export const GAME_TYPES: Record<GameType, GameTypeMeta> = {
       high: "You've absolutely done this.",
       mid: 'Suspicious denial.',
       low: 'Genuinely innocent (this time).',
+    },
+    theme: {
+      gradient: 'linear-gradient(135deg, #14b8a6 0%, #0ea5e9 70%, #5b6cf6 100%)',
+      accentClass: 'text-white/90',
+      emoji: '🙈',
+      eyebrow: 'CONFESS',
     },
   },
   most_likely_to: {
@@ -173,6 +203,12 @@ export const GAME_TYPES: Record<GameType, GameTypeMeta> = {
       mid: 'Voters split.',
       low: 'Maybe not you.',
     },
+    theme: {
+      gradient: 'linear-gradient(135deg, #f59e0b 0%, #f87171 60%, #ec4899 100%)',
+      accentClass: 'text-white/90',
+      emoji: '👉',
+      eyebrow: 'GROUP VOTE',
+    },
   },
   would_you_rather: {
     id: 'would_you_rather',
@@ -187,6 +223,12 @@ export const GAME_TYPES: Record<GameType, GameTypeMeta> = {
       high: "You don't actually mean that.",
       mid: 'Sort of believable.',
       low: 'Conviction confirmed.',
+    },
+    theme: {
+      gradient: 'linear-gradient(135deg, #6366f1 0%, #14b8a6 100%)',
+      accentClass: 'text-white/90',
+      emoji: '⚖️',
+      eyebrow: 'A or B',
     },
   },
   paranoia: {
@@ -203,6 +245,12 @@ export const GAME_TYPES: Record<GameType, GameTypeMeta> = {
       mid: 'Half-honest.',
       low: 'Diplomatic dodge.',
     },
+    theme: {
+      gradient: 'linear-gradient(135deg, #1e1b4b 0%, #5b21b6 60%, #ec4899 100%)',
+      accentClass: 'text-white/90',
+      emoji: '👁️',
+      eyebrow: 'WHISPER',
+    },
   },
   dare_roulette: {
     id: 'dare_roulette',
@@ -217,6 +265,12 @@ export const GAME_TYPES: Record<GameType, GameTypeMeta> = {
       high: 'You dodged that one.',
       mid: 'Half-truth detected.',
       low: 'Surprisingly honest.',
+    },
+    theme: {
+      gradient: 'linear-gradient(135deg, #f87171 0%, #f59e0b 50%, #ef4444 100%)',
+      accentClass: 'text-white/90',
+      emoji: '🎲',
+      eyebrow: 'CHAOS',
     },
   },
   two_truths_one_lie: {
@@ -233,6 +287,12 @@ export const GAME_TYPES: Record<GameType, GameTypeMeta> = {
       mid: 'AI is suspicious. Voters decide.',
       low: 'You sold it. AI bought it.',
     },
+    theme: {
+      gradient: 'linear-gradient(135deg, #0ea5e9 0%, #14b8a6 60%, #84cc16 100%)',
+      accentClass: 'text-white/90',
+      emoji: '🃏',
+      eyebrow: 'CALL THE BLUFF',
+    },
   },
   couples_quiz: {
     id: 'couples_quiz',
@@ -247,6 +307,12 @@ export const GAME_TYPES: Record<GameType, GameTypeMeta> = {
       high: 'Conversation needed.',
       mid: 'Healthy honesty.',
       low: 'Real talk. Respect.',
+    },
+    theme: {
+      gradient: 'linear-gradient(135deg, #ec4899 0%, #f87171 60%, #f59e0b 100%)',
+      accentClass: 'text-white/90',
+      emoji: '💞',
+      eyebrow: 'DATE NIGHT',
     },
   },
 };
