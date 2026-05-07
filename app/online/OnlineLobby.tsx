@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Heart, PartyPopper, Leaf, Flame, Plus, LogIn } from 'lucide-react';
+import { Users, Heart, PartyPopper, Leaf, Flame, Plus, LogIn, Zap } from 'lucide-react';
 import { GameBanner } from '@/components/layout/GameBanner';
-import type { RoomMode, RoomSpice } from '@/lib/rooms';
+import { ROUND_OPTIONS, type RoomMode, type RoomSpice } from '@/lib/rooms';
 import { cn } from '@/lib/utils';
 
 const MODES: { id: RoomMode; label: string; icon: React.ReactNode }[] = [
@@ -22,6 +22,8 @@ export function OnlineLobby() {
   const [displayName, setDisplayName] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [maxRounds, setMaxRounds] = useState<number>(5);
+  const [quickMode, setQuickMode] = useState<boolean>(false);
 
   const handleCreate = () => {
     setError(null);
@@ -34,7 +36,11 @@ export function OnlineLobby() {
         const res = await fetch('/api/room/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode, spice, locale: 'en', displayName: displayName.trim() }),
+          body: JSON.stringify({
+            mode, spice, locale: 'en',
+            displayName: displayName.trim(),
+            maxRounds, quickMode,
+          }),
         });
         const j = await res.json();
         if (!res.ok) throw new Error(j.error ?? 'Failed to create room');
@@ -176,6 +182,66 @@ export function OnlineLobby() {
               <span className="absolute top-1.5 right-1.5 font-mono text-[9px] tracking-widest font-bold bg-mustard text-bg px-1.5 py-0.5">PRO</span>
             </button>
           </div>
+        </section>
+
+        <section className="mb-6">
+          <h2 className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted mb-2">Rounds</h2>
+          <div className="grid grid-cols-4 gap-2">
+            {ROUND_OPTIONS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setMaxRounds(n)}
+                aria-pressed={maxRounds === n}
+                className={cn(
+                  'border-2 py-2 font-display font-black text-base transition-colors',
+                  maxRounds === n
+                    ? 'border-fg bg-fg text-bg'
+                    : 'border-line text-fg hover:border-fg'
+                )}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="mb-6">
+          <button
+            type="button"
+            onClick={() => setQuickMode((v) => !v)}
+            aria-pressed={quickMode}
+            className={cn(
+              'w-full border-2 px-4 py-3 flex items-center gap-3 transition-colors',
+              quickMode
+                ? 'border-acid bg-acid/10 text-fg'
+                : 'border-line text-fg hover:border-acid'
+            )}
+          >
+            <Zap className={cn('w-5 h-5', quickMode ? 'text-acid' : 'text-fg-muted')} />
+            <div className="flex-1 text-left">
+              <p className="font-display font-black uppercase tracking-tight">Quick mode</p>
+              <p className="font-mono text-[9px] tracking-widest uppercase text-fg-muted">
+                {quickMode
+                  ? 'On · everyone votes at the same time'
+                  : 'Off · one player on the spot at a time'}
+              </p>
+            </div>
+            <span
+              className={cn(
+                'w-10 h-6 border-2 relative transition-colors',
+                quickMode ? 'border-acid bg-acid' : 'border-line'
+              )}
+              aria-hidden="true"
+            >
+              <span
+                className={cn(
+                  'absolute top-0.5 w-4 h-4 bg-bg transition-transform',
+                  quickMode ? 'translate-x-5' : 'translate-x-0.5'
+                )}
+              />
+            </span>
+          </button>
         </section>
 
         <section className="mb-6">

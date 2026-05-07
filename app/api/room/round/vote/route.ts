@@ -35,15 +35,23 @@ export async function POST(req: NextRequest) {
   const admin = createServiceRoleClient();
   const { data: round } = await admin
     .from('room_rounds')
-    .select('id, room_id, prompter_player_id, revealed_at')
+    .select('id, room_id, prompter_player_id, revealed_at, declared_answer')
     .eq('id', roundId)
     .single();
   if (!round) return NextResponse.json({ error: 'Round not found' }, { status: 404 });
-  if (round.prompter_player_id === voterPlayerId) {
+  if (round.prompter_player_id && round.prompter_player_id === voterPlayerId) {
     return NextResponse.json({ error: 'Prompter cannot vote on own round' }, { status: 403 });
   }
   if (round.revealed_at) {
     return NextResponse.json({ error: 'Round already revealed' }, { status: 409 });
+  }
+  // In classic mode, voting is gated by the prompter's declaration. In quick
+  // mode there is no prompter — voting is open immediately.
+  if (round.prompter_player_id && !round.declared_answer) {
+    return NextResponse.json(
+      { error: 'Waiting for prompter to declare truth or cap' },
+      { status: 409 },
+    );
   }
 
   const { data: player } = await admin

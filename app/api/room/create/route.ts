@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { createRoom, type RoomMode, type RoomSpice } from '@/lib/rooms';
+import { createRoom, ROUND_OPTIONS, type RoomMode, type RoomSpice } from '@/lib/rooms';
 import { isPremiumAsync } from '@/lib/admin';
 import { issuePlayerToken, PLAYER_TOKEN_COOKIE } from '@/lib/player-token';
 
@@ -13,7 +13,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Sign in required to host a room' }, { status: 401 });
   }
 
-  let body: { mode?: RoomMode; spice?: RoomSpice; locale?: string; displayName?: string };
+  let body: {
+    mode?: RoomMode;
+    spice?: RoomSpice;
+    locale?: string;
+    displayName?: string;
+    maxRounds?: number;
+    quickMode?: boolean;
+  };
   try {
     body = await req.json();
   } catch {
@@ -24,6 +31,10 @@ export async function POST(req: NextRequest) {
   const spice = body.spice ?? 'mild';
   const locale = body.locale ?? 'en';
   const displayName = (body.displayName ?? '').trim() || user.email?.split('@')[0] || 'Host';
+  const maxRounds = (ROUND_OPTIONS as readonly number[]).includes(Number(body.maxRounds))
+    ? Number(body.maxRounds)
+    : 5;
+  const quickMode = body.quickMode === true;
 
   if (!['family','couple','group'].includes(mode)) {
     return NextResponse.json({ error: 'Invalid mode' }, { status: 400 });
@@ -50,6 +61,8 @@ export async function POST(req: NextRequest) {
       hostUserId: user.id,
       hostDisplayName: displayName,
       mode, spice, locale,
+      maxRounds,
+      quickMode,
     });
     const token = issuePlayerToken(player.id, room.id);
     const res = NextResponse.json({ room, player });

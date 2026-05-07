@@ -1,10 +1,26 @@
 'use client';
 
-import { useEffect, useState, useTransition, useMemo, useRef } from 'react';
+import { useEffect, useState, useTransition, useMemo } from 'react';
 import Link from 'next/link';
 import { createBrowserClient } from '@supabase/ssr';
 import { GameBanner } from '@/components/layout/GameBanner';
-import { Crown, Users, Copy, Play, Clock, Mic, Square, CheckCircle2, XCircle, Share2, X, MessageCircle, Music2, Instagram, Twitter, LogIn } from 'lucide-react';
+import {
+  Crown,
+  Users,
+  Copy,
+  Play,
+  CheckCircle2,
+  XCircle,
+  Share2,
+  X,
+  MessageCircle,
+  Music2,
+  Instagram,
+  Twitter,
+  LogIn,
+  Zap,
+  PenLine,
+} from 'lucide-react';
 import type { Room, RoomPlayer, RoomRound, RoundVote } from '@/lib/rooms';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -28,6 +44,11 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Host-only lobby form: who's the next prompter + optional custom question.
+  const [selectedPrompterId, setSelectedPrompterId] = useState<string | null>(null);
+  const [customQuestion, setCustomQuestion] = useState('');
+  const [showCustom, setShowCustom] = useState(false);
+
   const supabase = useMemo(() => {
     return createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,10 +59,6 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
   useEffect(() => {
     try {
       const id = window.localStorage.getItem(`tlc:player:${room.code}`);
-      // Only trust the cached player id if it actually belongs to this room
-      // AND that player hasn't left. Otherwise force the JoinGate so guests
-      // arriving via a shared link always enter their name first, even if
-      // their browser has stale data from an unrelated room.
       if (id) {
         const stillHere = initialPlayers.some((p) => p.id === id && !p.left_at);
         if (stillHere) {
@@ -54,7 +71,6 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
     setJoinChecked(true);
   }, [room.code, initialPlayers]);
 
-  // Realtime: rooms, room_players, room_rounds, round_votes.
   useEffect(() => {
     const channel = supabase
       .channel(`room:${room.id}`)
@@ -82,8 +98,6 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
     return () => { supabase.removeChannel(channel); };
   }, [supabase, room.id]);
 
-  // Presence: track who's actually online RIGHT NOW. Ghost players (closed
-  // browser without leaving) get filtered from eligibleVoters via this set.
   useEffect(() => {
     if (!myPlayerId) return;
     const ch = supabase.channel(`presence:${room.id}`, {
@@ -101,7 +115,6 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
     return () => { supabase.removeChannel(ch); };
   }, [supabase, room.id, myPlayerId]);
 
-  // beforeunload: explicit leave so the next host action doesn't wait for ghost.
   useEffect(() => {
     if (!myPlayerId) return;
     const handler = () => {
@@ -115,8 +128,6 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
     return () => window.removeEventListener('beforeunload', handler);
   }, [room.id, myPlayerId]);
 
-  // round_votes channel is scoped to the active round.id — re-subscribes
-  // whenever round changes so we never see votes from sibling rooms.
   useEffect(() => {
     if (!round) { setVotes([]); return; }
     let cancelled = false;
@@ -142,36 +153,111 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
   const me = players.find(p => p.id === myPlayerId);
   const host = players.find(p => p.is_host);
   const iAmHost = me?.is_host ?? false;
-  const iAmPrompter = round && me && round.prompter_player_id === me.id;
+  const iAmPrompter = !!round && !!me && round.prompter_player_id === me.id;
   const myVote = round ? votes.find(v => v.voter_player_id === myPlayerId)?.vote : null;
-  const eligibleVoters = players.filter(p => {
-    if (p.id === round?.prompter_player_id) return false;
-    if (p.left_at) return false;
-    // Anonymous players must be present in the realtime presence channel;
-    // authed players count regardless (they may still be reachable in another tab).
+  const activePlayers = players.filter(p => !p.left_at);
+
+  // Eligible voters depend on mode. Quick mode: every active player votes
+  // (no prompter to skip). Classic mode: skip the prompter.
+  const eligibleVoters = activePlayers.filter(p => {
+    if (round && round.prompter_player_id && p.id === round.prompter_player_id) return false;
     if (!p.user_id) return presentIds.has(p.id);
     return true;
   });
-  const allVoted = round && eligibleVoters.length > 0 && votes.length >= eligibleVoters.length;
+  const allVoted = !!round && eligibleVoters.length > 0 && votes.length >= eligibleVoters.length;
+
+  const isQuickMode = room.quick_mode;
+  const minPlayers = room.min_players ?? 2;
+  const enoughPlayers = activePlayers.length >= minPlayers;
+  const roundActive = !!round && !round.revealed_at;
+  const gameFinished = room.current_round >= room.max_rounds && !!round?.revealed_at;
+  const canStartNext = !roundActive && !gameFinished;
+
+  // Default the prompter dropdown to a rotating active player.
+  useEffect(() => {
+    if (!iAmHost || isQuickMode) return;
+    if (selectedPrompterId && activePlayers.some(p => p.id === selectedPrompterId)) return;
+    if (activePlayers.length === 0) return;
+    const sorted = [...activePlayers].sort((a, b) => a.joined_at.localeCompare(b.joined_at));
+    const idx = room.current_round % sorted.length;
+    setSelectedPrompterId(sorted[idx]?.id ?? sorted[0].id);
+  }, [iAmHost, isQuickMode, selectedPrompterId, activePlayers, room.current_round]);
+
+  const updateLobby = (patch: { quickMode?: boolean; maxRounds?: number }) => {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const res = await fetch('/api/room/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: room.id, ...patch }),
+        });
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.error ?? 'Could not update');
+        if (j.room) setRoom(j.room);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not update room');
+      }
+    });
+  };
 
   const startNextRound = () => {
     setError(null);
     if (!iAmHost) return;
-    const sorted = [...players].sort((a, b) => a.joined_at.localeCompare(b.joined_at));
-    const idx = room.current_round % sorted.length;
-    const prompter = sorted[idx];
-    if (!prompter) return setError('Need at least 1 player');
+    if (!enoughPlayers) {
+      setError(`Need at least ${minPlayers} players to start`);
+      return;
+    }
+
+    const trimmedCustom = customQuestion.trim();
+    let prompterPlayerId: string | null = null;
+    if (!isQuickMode) {
+      prompterPlayerId = selectedPrompterId;
+      if (!prompterPlayerId) {
+        const sorted = [...activePlayers].sort((a, b) => a.joined_at.localeCompare(b.joined_at));
+        prompterPlayerId = sorted[room.current_round % sorted.length]?.id ?? null;
+      }
+      if (!prompterPlayerId) {
+        setError('Pick a player to put on the spot');
+        return;
+      }
+    }
+
     startTransition(async () => {
       try {
         const res = await fetch('/api/room/round/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId: room.id, prompterPlayerId: prompter.id }),
+          body: JSON.stringify({
+            roomId: room.id,
+            prompterPlayerId,
+            customQuestion: trimmedCustom || undefined,
+          }),
         });
         const j = await res.json();
         if (!res.ok) throw new Error(j.error ?? 'Failed to start round');
+        setCustomQuestion('');
+        setShowCustom(false);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Could not start round');
+      }
+    });
+  };
+
+  const declare = (answer: 'truth' | 'cap') => {
+    if (!round || !myPlayerId) return;
+    setError(null);
+    startTransition(async () => {
+      try {
+        const res = await fetch('/api/room/round/declare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roundId: round.id, playerId: myPlayerId, declaredAnswer: answer }),
+        });
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.error ?? 'Failed to declare');
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not declare');
       }
     });
   };
@@ -222,15 +308,7 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
     } catch { /* */ }
   };
 
-  // Always show our own modal first. The native share sheet has a couple of
-  // gotchas: on desktop it doesn't exist, on iOS Safari the user can dismiss
-  // it without us ever knowing whether they shared, and on the very first
-  // click after page load it sometimes silently NoOps (the "two clicks
-  // needed" bug from QA). Our modal includes a Share button that calls
-  // navigator.share for users who want it.
-  const openShare = () => {
-    setShareOpen(true);
-  };
+  const openShare = () => setShareOpen(true);
 
   if (joinChecked && !myPlayerId) {
     return (
@@ -238,9 +316,7 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
         roomCode={room.code}
         onJoined={(playerId) => {
           setMyPlayerId(playerId);
-          try {
-            window.localStorage.setItem(`tlc:player:${room.code}`, playerId);
-          } catch { /* */ }
+          try { window.localStorage.setItem(`tlc:player:${room.code}`, playerId); } catch { /* */ }
         }}
       />
     );
@@ -261,6 +337,7 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
 
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">
           {room.mode} · {room.spice} · round {room.current_round} of {room.max_rounds}
+          {isQuickMode ? ' · quick' : ''}
         </p>
         <div className="flex items-center justify-between gap-3 mb-6">
           <h1 className="font-display text-5xl font-black leading-[0.9] tracking-[0.1em]">
@@ -279,19 +356,24 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
           <div className="flex items-center gap-2 mb-3">
             <Users className="w-4 h-4 text-fg-muted" />
             <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted">
-              {players.length}/{room.max_players ?? 10} players
+              {activePlayers.length}/{room.max_players ?? 10} players
+              {!enoughPlayers && room.current_round === 0
+                ? ` · need ${minPlayers}+`
+                : ''}
             </p>
           </div>
           <ul className="space-y-2">
             {players.map((p) => {
               const playerVote = votes.find(v => v.voter_player_id === p.id);
               const isMe = p.id === myPlayerId;
+              const isPrompter = round && p.id === round.prompter_player_id;
               return (
                 <li
                   key={p.id}
                   className={cn(
                     'flex items-center gap-3 border-2 px-4 py-3 transition-colors',
-                    isMe ? 'border-fg' : 'border-line'
+                    isMe ? 'border-fg' : 'border-line',
+                    p.left_at ? 'opacity-50' : ''
                   )}
                 >
                   <div className="w-8 h-8 border-2 border-line flex items-center justify-center font-display font-black text-base text-fg">
@@ -306,9 +388,9 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
                         </span>
                       ) : null}
                     </p>
-                    {round && p.id === round.prompter_player_id ? (
+                    {isPrompter ? (
                       <p className="font-mono text-[9px] tracking-widest uppercase text-blood mt-0.5">
-                        prompter
+                        on the spot
                       </p>
                     ) : null}
                   </div>
@@ -322,26 +404,89 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
           </ul>
         </section>
 
-        {round ? (
-          <RoundView
-            round={round}
-            isPrompter={!!iAmPrompter}
-            myPlayerId={me?.id ?? null}
-            myVote={myVote}
-            votes={votes}
-            eligibleVoters={eligibleVoters.length}
-            onVote={castVote}
-            onReveal={reveal}
-            iAmHost={iAmHost}
-            allVoted={!!allVoted}
+        {/* Lobby controls — only host, only before any round runs. */}
+        {iAmHost && room.current_round === 0 && !round ? (
+          <LobbySettings
+            room={room}
+            disabled={pending}
+            onUpdate={updateLobby}
           />
         ) : null}
 
-        {iAmHost && room.status !== 'finished' ? (
-          <section className="mt-6">
+        {round ? (
+          <RoundView
+            round={round}
+            quickMode={isQuickMode}
+            isPrompter={iAmPrompter}
+            myVote={myVote}
+            votes={votes}
+            players={players}
+            eligibleVoters={eligibleVoters.length}
+            onDeclare={declare}
+            onVote={castVote}
+            onReveal={reveal}
+            iAmHost={iAmHost}
+            allVoted={allVoted}
+          />
+        ) : null}
+
+        {iAmHost && canStartNext ? (
+          <section className="mt-6 space-y-4">
+            {!isQuickMode && activePlayers.length > 0 ? (
+              <div>
+                <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted mb-2">
+                  Put on the spot
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {activePlayers.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedPrompterId(p.id)}
+                      type="button"
+                      className={cn(
+                        'border-2 px-3 py-2 text-left transition-colors',
+                        selectedPrompterId === p.id
+                          ? 'border-mustard bg-mustard text-bg'
+                          : 'border-line text-fg hover:border-mustard'
+                      )}
+                    >
+                      <span className="font-display font-black text-sm uppercase tracking-tight truncate block">
+                        {p.display_name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowCustom((v) => !v)}
+                className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted hover:text-fg inline-flex items-center gap-1.5"
+              >
+                <PenLine className="w-3 h-3" />
+                {showCustom ? 'Use a random question' : 'Write your own question'}
+              </button>
+              {showCustom ? (
+                <textarea
+                  value={customQuestion}
+                  onChange={(e) => setCustomQuestion(e.target.value.slice(0, 240))}
+                  placeholder={
+                    isQuickMode
+                      ? 'A statement everyone votes on…'
+                      : 'A question for the player on the spot…'
+                  }
+                  rows={2}
+                  className="mt-2 w-full px-3 py-2 bg-bg-card border-2 border-line focus:border-mustard outline-none text-fg placeholder:text-fg-muted font-display text-base resize-none"
+                  maxLength={240}
+                />
+              ) : null}
+            </div>
+
             <Button
               onClick={startNextRound}
-              disabled={pending || players.length === 0}
+              disabled={pending || !enoughPlayers}
               size="lg"
               fullWidth
             >
@@ -349,9 +494,11 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
                 <Play className="w-5 h-5" />
                 {pending
                   ? 'Starting…'
-                  : round?.revealed_at || !round
-                  ? 'Start next round'
-                  : 'Round in progress…'}
+                  : !enoughPlayers
+                  ? `Waiting for players… (${activePlayers.length}/${minPlayers})`
+                  : room.current_round === 0
+                  ? 'Start game'
+                  : 'Start next round'}
               </span>
             </Button>
           </section>
@@ -359,7 +506,13 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
 
         {!iAmHost && host && !round ? (
           <p className="mt-6 font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted text-center">
-            Waiting for {host.display_name} to start the round…
+            Waiting for {host.display_name} to start…
+          </p>
+        ) : null}
+
+        {gameFinished ? (
+          <p className="mt-6 font-mono text-[10px] tracking-[0.4em] uppercase text-acid text-center">
+            Game over · {room.max_rounds} rounds played
           </p>
         ) : null}
 
@@ -386,6 +539,86 @@ export function RoomClient({ initialRoom, initialPlayers, initialRound }: Props)
         />
       ) : null}
     </main>
+  );
+}
+
+interface LobbySettingsProps {
+  room: Room;
+  disabled: boolean;
+  onUpdate: (patch: { quickMode?: boolean; maxRounds?: number }) => void;
+}
+
+function LobbySettings({ room, disabled, onUpdate }: LobbySettingsProps) {
+  const ROUNDS = [5, 10, 15, 20];
+  return (
+    <section className="mb-6 border-2 border-line p-4 bg-bg-card">
+      <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">
+        Lobby · host only
+      </p>
+
+      <div className="mb-4">
+        <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted mb-2">
+          Rounds
+        </p>
+        <div className="grid grid-cols-4 gap-2">
+          {ROUNDS.map((n) => (
+            <button
+              key={n}
+              type="button"
+              disabled={disabled}
+              onClick={() => onUpdate({ maxRounds: n })}
+              className={cn(
+                'border-2 py-2 font-display font-black text-base transition-colors disabled:opacity-60',
+                room.max_rounds === n
+                  ? 'border-fg bg-fg text-bg'
+                  : 'border-line text-fg hover:border-fg'
+              )}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => onUpdate({ quickMode: !room.quick_mode })}
+          aria-pressed={room.quick_mode}
+          className={cn(
+            'w-full border-2 px-4 py-3 flex items-center gap-3 transition-colors disabled:opacity-60',
+            room.quick_mode
+              ? 'border-acid bg-acid/10 text-fg'
+              : 'border-line text-fg hover:border-acid'
+          )}
+        >
+          <Zap className={cn('w-5 h-5', room.quick_mode ? 'text-acid' : 'text-fg-muted')} />
+          <div className="flex-1 text-left">
+            <p className="font-display font-black uppercase tracking-tight">Quick mode</p>
+            <p className="font-mono text-[9px] tracking-widest uppercase text-fg-muted">
+              {room.quick_mode
+                ? 'On · everyone votes at the same time'
+                : 'Off · one player at a time'}
+            </p>
+          </div>
+          <span
+            className={cn(
+              'w-10 h-6 border-2 relative transition-colors',
+              room.quick_mode ? 'border-acid bg-acid' : 'border-line'
+            )}
+            aria-hidden="true"
+          >
+            <span
+              className={cn(
+                'absolute top-0.5 w-4 h-4 bg-bg transition-transform',
+                room.quick_mode ? 'translate-x-5' : 'translate-x-0.5'
+              )}
+            />
+          </span>
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -625,45 +858,101 @@ function ShareButton({
 
 interface RoundViewProps {
   round: RoomRound;
+  quickMode: boolean;
   isPrompter: boolean;
-  myPlayerId: string | null;
   myVote: 'truth' | 'cap' | null | undefined;
   votes: RoundVote[];
+  players: RoomPlayer[];
   eligibleVoters: number;
+  onDeclare: (answer: 'truth' | 'cap') => void;
   onVote: (vote: 'truth' | 'cap') => void;
   onReveal: () => void;
   iAmHost: boolean;
   allVoted: boolean;
 }
 
-function RoundView({ round, isPrompter, myPlayerId, myVote, votes, eligibleVoters, onVote, onReveal, iAmHost, allVoted }: RoundViewProps) {
+function RoundView({
+  round,
+  quickMode,
+  isPrompter,
+  myVote,
+  votes,
+  players,
+  eligibleVoters,
+  onDeclare,
+  onVote,
+  onReveal,
+  iAmHost,
+  allVoted,
+}: RoundViewProps) {
   const revealed = !!round.revealed_at;
   const truthVotes = votes.filter(v => v.vote === 'truth').length;
   const capVotes = votes.filter(v => v.vote === 'cap').length;
+  const prompter = round.prompter_player_id
+    ? players.find(p => p.id === round.prompter_player_id)
+    : null;
+
+  // Voting opens once the prompter has declared (classic) or immediately (quick).
+  const votingOpen = quickMode || !!round.declared_answer;
+  const waitingForDeclare = !quickMode && !round.declared_answer && !revealed;
 
   return (
     <section className="mt-6 border-2 border-fg p-5 bg-bg-card">
-      <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">
+      <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-2">
         Round {round.round_number}
-      </p>
-      <p className="font-display text-2xl font-black leading-tight mb-1">
-        &ldquo;{round.question}&rdquo;
+        {round.is_custom ? ' · host wrote this' : ''}
+        {quickMode ? ' · quick' : ''}
       </p>
 
-      {isPrompter && !round.recording_url ? (
-        <PrompterRecorder roundId={round.id} playerId={myPlayerId} />
-      ) : null}
-
-      {round.recording_url && round.sus_level === null ? (
-        <p className="mt-4 font-mono text-[10px] tracking-widest uppercase text-fg-muted inline-flex items-center gap-2">
-          <Clock className="w-3.5 h-3.5 animate-pulse" /> Analyzing voice + face + language…
+      {prompter ? (
+        <p className="font-mono text-[10px] tracking-widest uppercase text-blood mb-2">
+          On the spot: <span className="text-fg">{prompter.display_name}</span>
         </p>
       ) : null}
 
-      {round.sus_level !== null && !revealed && !isPrompter ? (
+      <p className="font-display text-2xl font-black leading-tight mb-3">
+        &ldquo;{round.question}&rdquo;
+      </p>
+
+      {/* Prompter's declaration UI (classic mode only). */}
+      {!quickMode && isPrompter && !round.declared_answer && !revealed ? (
+        <div className="mt-5 space-y-3">
+          <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted">
+            Your call: truth or cap?
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => onDeclare('truth')}
+              className="border-2 border-acid text-acid hover:bg-acid hover:text-bg py-4 font-display font-black text-lg uppercase tracking-tight transition-colors"
+              type="button"
+            >
+              Truth
+            </button>
+            <button
+              onClick={() => onDeclare('cap')}
+              className="border-2 border-blood text-blood hover:bg-blood hover:text-bg py-4 font-display font-black text-lg uppercase tracking-tight transition-colors"
+              type="button"
+            >
+              Cap
+            </button>
+          </div>
+          <p className="font-mono text-[9px] tracking-widest uppercase text-fg-muted">
+            Friends vote next. Pick whatever you want — bluffing is the point.
+          </p>
+        </div>
+      ) : null}
+
+      {waitingForDeclare && !isPrompter ? (
+        <p className="mt-4 font-mono text-[10px] tracking-widest uppercase text-fg-muted">
+          Waiting for {prompter?.display_name ?? 'them'} to call truth or cap…
+        </p>
+      ) : null}
+
+      {/* Voting UI. */}
+      {votingOpen && !revealed && !isPrompter ? (
         <div className="mt-5">
           <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted mb-3">
-            Cast your vote
+            {quickMode ? 'Truth or cap?' : `${prompter?.display_name ?? 'They'} called ${round.declared_answer?.toUpperCase()}. Buy it?`}
           </p>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -699,13 +988,13 @@ function RoundView({ round, isPrompter, myPlayerId, myVote, votes, eligibleVoter
         </div>
       ) : null}
 
-      {round.sus_level !== null && !revealed && isPrompter ? (
+      {votingOpen && !revealed && isPrompter ? (
         <p className="mt-4 font-mono text-[10px] tracking-widest uppercase text-fg-muted">
-          Recording analyzed. Friends are voting now…
+          Friends are voting now…
         </p>
       ) : null}
 
-      {iAmHost && round.sus_level !== null && !revealed && allVoted ? (
+      {iAmHost && votingOpen && !revealed && allVoted ? (
         <button
           onClick={onReveal}
           className="mt-4 w-full border-2 border-mustard bg-mustard text-bg font-display font-black text-base uppercase tracking-tight py-3 hover:bg-bg hover:text-mustard transition-colors"
@@ -717,15 +1006,19 @@ function RoundView({ round, isPrompter, myPlayerId, myVote, votes, eligibleVoter
 
       {revealed ? (
         <div className="mt-5">
-          <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted">SUS LEVEL</p>
-          <p className="font-display text-6xl font-black leading-none mt-1 text-mustard">
-            {Number(round.sus_level ?? 0).toFixed(0)}%
-          </p>
-          <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mt-2">
-            Player declared:{' '}
-            <span className="text-fg">{round.declared_answer?.toUpperCase() ?? '—'}</span>
-          </p>
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          {round.declared_answer ? (
+            <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-2">
+              {prompter?.display_name ?? 'Prompter'} called:{' '}
+              <span
+                className={
+                  round.declared_answer === 'truth' ? 'text-acid' : 'text-blood'
+                }
+              >
+                {round.declared_answer.toUpperCase()}
+              </span>
+            </p>
+          ) : null}
+          <div className="mt-2 grid grid-cols-2 gap-2">
             <div className="border-2 border-acid px-3 py-3 flex items-center justify-between">
               <span className="font-mono text-[10px] tracking-widest uppercase text-acid inline-flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Truth
@@ -739,203 +1032,8 @@ function RoundView({ round, isPrompter, myPlayerId, myVote, votes, eligibleVoter
               <span className="font-display font-black text-2xl">{capVotes}</span>
             </div>
           </div>
-          {round.analysis_summary ? (
-            <p className="mt-3 font-mono text-[10px] tracking-widest text-fg-muted leading-relaxed">
-              {round.analysis_summary}
-            </p>
-          ) : null}
         </div>
       ) : null}
     </section>
-  );
-}
-
-function PrompterRecorder({ roundId, playerId }: { roundId: string; playerId: string | null }) {
-  const [recording, setRecording] = useState(false);
-  const [uploaded, setUploaded] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [declaredAnswer, setDeclaredAnswer] = useState<'truth' | 'cap'>('truth');
-  const [error, setError] = useState<string | null>(null);
-  const [seconds, setSeconds] = useState(0);
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const start = async () => {
-    setError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-      chunksRef.current = [];
-      const candidates = [
-        'video/webm;codecs=vp9,opus',
-        'video/webm;codecs=vp8,opus',
-        'video/webm',
-        'video/mp4;codecs=h264,aac',
-        'video/mp4',
-      ];
-    if (typeof MediaRecorder === 'undefined') {
-      // Clean up stream — getUserMedia already started capture, camera light is on.
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      if (videoRef.current) videoRef.current.srcObject = null;
-      setError('Your browser doesn\'t support recording. Try Chrome on Android or Safari iOS 14.5+.');
-      return;
-    }
-      const supported = candidates.find((m) => typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(m)) || '';
-      const mimeType = supported || candidates[0];
-      const mr = new MediaRecorder(stream, supported ? { mimeType } : undefined);
-      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.onstop = handleStop;
-      mr.onerror = () => { setError('Recording failed'); stop(); };
-      mediaRecorderRef.current = mr;
-      mr.start();
-      setRecording(true);
-      setSeconds(0);
-      timerRef.current = setInterval(() => setSeconds((s) => {
-        if (s >= 30) { stop(); return 30; }
-        return s + 1;
-      }), 1000);
-    } catch (e) {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      if (videoRef.current) videoRef.current.srcObject = null;
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-      setError(e instanceof Error ? e.message : 'Mic/camera blocked');
-    }
-  };
-
-  const stop = () => {
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    setRecording(false);
-  };
-
-  const handleStop = async () => {
-    const recordedMime = mediaRecorderRef.current?.mimeType || 'video/webm';
-    const isMp4 = recordedMime.includes('mp4');
-    const blob = new Blob(chunksRef.current, { type: recordedMime });
-    const ext = isMp4 ? 'mp4' : 'webm';
-    const path = `rooms/${roundId}-${Date.now()}.${ext}`;
-    try {
-      const initRes = await fetch('/api/room/recording/init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path, contentType: recordedMime, roundId, playerId }),
-      });
-      const init = await initRes.json();
-      if (!initRes.ok) throw new Error(init.error ?? 'Init failed');
-
-      const put = await fetch(init.signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': recordedMime },
-        body: blob,
-      });
-      if (!put.ok) throw new Error('Upload failed');
-
-      const upRes = await fetch('/api/room/round/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // Send playerId so anonymous prompters can prove identity to the
-        // server (authed users are matched via their session.user_id).
-        body: JSON.stringify({ roundId, playerId, recordingUrl: path, declaredAnswer }),
-      });
-      const up = await upRes.json();
-      if (!upRes.ok) throw new Error(up.error ?? 'Upload metadata failed');
-
-      setUploaded(true);
-      setAnalyzing(true);
-      // Trigger analysis (server runs whisper/hume/claude pipeline).
-      const aRes = await fetch('/api/room/round/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roundId }),
-      });
-      if (!aRes.ok) {
-        const a = await aRes.json();
-        throw new Error(a.error ?? 'Analyze failed');
-      }
-      setAnalyzing(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed');
-      setAnalyzing(false);
-    }
-  };
-
-  if (uploaded) {
-    return (
-      <p className="mt-4 font-mono text-[10px] tracking-widest uppercase text-fg-muted">
-        {analyzing ? 'Analyzing your recording…' : 'Recording uploaded, waiting for friends to vote.'}
-      </p>
-    );
-  }
-
-  return (
-    <div className="mt-5 space-y-3">
-      {!recording ? (
-        <>
-          <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted">
-            Your truth or your lie
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setDeclaredAnswer('truth')}
-              className={cn(
-                'border-2 py-3 font-display font-black uppercase tracking-tight transition-colors',
-                declaredAnswer === 'truth'
-                  ? 'border-acid bg-acid text-bg'
-                  : 'border-line text-fg hover:border-acid hover:text-acid'
-              )}
-              type="button"
-            >
-              Truth
-            </button>
-            <button
-              onClick={() => setDeclaredAnswer('cap')}
-              className={cn(
-                'border-2 py-3 font-display font-black uppercase tracking-tight transition-colors',
-                declaredAnswer === 'cap'
-                  ? 'border-blood bg-blood text-fg'
-                  : 'border-line text-fg hover:border-blood hover:text-blood'
-              )}
-              type="button"
-            >
-              Cap
-            </button>
-          </div>
-          <button
-            onClick={start}
-            className="w-full border-2 border-mustard bg-mustard text-bg font-display font-black text-base uppercase tracking-tight py-3 inline-flex items-center justify-center gap-2 hover:bg-bg hover:text-mustard transition-colors"
-            type="button"
-          >
-            <Mic className="w-4 h-4" /> Tap to record (30s)
-          </button>
-        </>
-      ) : (
-        <>
-          <video ref={videoRef} autoPlay muted playsInline className="w-full border-2 border-line bg-black aspect-video" />
-          <p className="text-center font-mono text-2xl text-mustard">{30 - seconds}s</p>
-          <button
-            onClick={stop}
-            className="w-full border-2 border-blood bg-blood text-fg font-display font-black text-base uppercase tracking-tight py-3 inline-flex items-center justify-center gap-2 hover:bg-bg hover:text-blood transition-colors"
-            type="button"
-          >
-            <Square className="w-4 h-4" /> Stop
-          </button>
-        </>
-      )}
-      {error ? (
-        <p className="font-mono text-[10px] tracking-widest uppercase text-blood" role="alert">
-          {error}
-        </p>
-      ) : null}
-    </div>
   );
 }

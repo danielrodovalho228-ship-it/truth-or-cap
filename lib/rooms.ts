@@ -14,6 +14,8 @@ export interface Room {
   current_round: number;
   max_rounds: number;
   max_players: number;
+  min_players: number;
+  quick_mode: boolean;
   locale: string;
   created_at: string;
   finished_at: string | null;
@@ -35,16 +37,20 @@ export interface RoomRound {
   id: string;
   room_id: string;
   round_number: number;
-  prompter_player_id: string;
+  prompter_player_id: string | null;
   question: string;
   declared_answer: 'truth' | 'cap' | null;
   recording_url: string | null;
   sus_level: number | null;
   analysis_summary: string | null;
+  is_custom: boolean;
   started_at: string;
   ends_at: string | null;
   revealed_at: string | null;
 }
+
+export const ROUND_OPTIONS = [5, 10, 15, 20] as const;
+export const MIN_PLAYERS_TO_START = 2;
 
 export interface RoundVote {
   id: string;
@@ -84,6 +90,7 @@ export async function createRoom(
     locale: string;
     maxRounds?: number;
     maxPlayers?: number;
+    quickMode?: boolean;
   }
 ): Promise<{ room: Room; player: RoomPlayer }> {
   let code = generateRoomCode();
@@ -96,6 +103,13 @@ export async function createRoom(
     code = generateRoomCode();
   }
 
+  // Clamp max_rounds to the supported preset values; fall back to 5 if the
+  // host passes anything weird.
+  const requestedRounds = params.maxRounds ?? 5;
+  const maxRounds = (ROUND_OPTIONS as readonly number[]).includes(requestedRounds)
+    ? requestedRounds
+    : 5;
+
   const { data: room, error: roomErr } = await supabase
     .from('rooms')
     .insert({
@@ -104,8 +118,10 @@ export async function createRoom(
       mode: params.mode,
       spice: params.spice,
       locale: params.locale,
-      max_rounds: params.maxRounds ?? 5,
+      max_rounds: maxRounds,
       max_players: Math.min(params.maxPlayers ?? DEFAULT_MAX_PLAYERS, DEFAULT_MAX_PLAYERS),
+      min_players: MIN_PLAYERS_TO_START,
+      quick_mode: params.quickMode ?? false,
     })
     .select()
     .single();
@@ -203,35 +219,54 @@ export async function pickRandomQuestion(
   return data[Math.floor(Math.random() * data.length)].question;
 }
 
+export interface StartRoundInput {
+  roomId: string;
+  /**
+   * Subject of the round. NULL for quick-mode (no single subject).
+   * For a host-typed question aimed at a specific player, pass that player
+   * here — they become the prompter who declares truth/cap.
+   */
+  prompterPlayerId: string | null;
+  /** Optional host-typed question. When omitted, picks a random one. */
+  customQuestion?: string;
+  durationSeconds?: number;
+}
+
 export async function startNextRound(
   supabase: SupabaseClient,
-  roomId: string,
-  prompterPlayerId: string,
-  durationSeconds = 30
+  input: StartRoundInput
 ): Promise<RoomRound> {
   const { data: room } = await supabase
     .from('rooms')
-    .select('mode, spice, locale')
-    .eq('id', roomId)
+    .select('mode, spice, locale, quick_mode')
+    .eq('id', input.roomId)
     .single();
   if (!room) throw new Error('Room not found');
 
-  const question = await pickRandomQuestion(supabase, room.mode, room.spice, room.locale);
+  const customQuestion = input.customQuestion?.trim();
+  const isCustom = !!customQuestion;
+  const question = isCustom
+    ? customQuestion!
+    : await pickRandomQuestion(supabase, room.mode, room.spice, room.locale);
   if (!question) throw new Error('No questions available for this pack');
 
-  // Atomic increment + insert; prevents TOCTOU race on rooms.current_round.
+  // In quick mode the round has no single prompter — every active player votes.
+  // Otherwise the prompter is the subject; for a host-typed Q targeted at a
+  // specific player, that player IS the prompter (they declare truth/cap).
+  const prompterPlayerId = room.quick_mode ? null : input.prompterPlayerId;
+
   const { data: rpcResult, error } = await supabase.rpc('start_next_round_atomic', {
-    p_room_id: roomId,
+    p_room_id: input.roomId,
     p_prompter_player_id: prompterPlayerId,
     p_question: question,
+    p_is_custom: isCustom,
   });
 
   if (error) throw error;
   const row = Array.isArray(rpcResult) ? rpcResult[0] : rpcResult;
   if (!row?.id) throw new Error('Failed to start round');
 
-  // Set ends_at (RPC sets started_at via DEFAULT now()) and flip status to playing.
-  const endsAt = new Date(Date.now() + durationSeconds * 1000).toISOString();
+  const endsAt = new Date(Date.now() + (input.durationSeconds ?? 60) * 1000).toISOString();
   const { data: round, error: updateErr } = await supabase
     .from('room_rounds')
     .update({ ends_at: endsAt })
@@ -243,7 +278,7 @@ export async function startNextRound(
   await supabase
     .from('rooms')
     .update({ status: 'playing' })
-    .eq('id', roomId);
+    .eq('id', input.roomId);
 
   return round as RoomRound;
 }

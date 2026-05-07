@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Video, Square, RotateCcw, Send, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { ConsentDisclaimer } from './ConsentDisclaimer';
 import { cn } from '@/lib/utils';
 import type { RecordingState, Vote } from '@/lib/types';
 
@@ -50,8 +49,9 @@ export function VideoRecorder({
   const startedAtRef = useRef<number>(0);
   const mimeRef = useRef<string>('video/webm');
 
-  const [state, setState] = useState<RecordingState>({ status: 'idle', duration: 0 });
-  const [showConsent, setShowConsent] = useState(true);
+  // Start in 'requesting' so the very first render shows the camera-prompt
+  // spinner instead of a blank screen while useEffect kicks off getUserMedia.
+  const [state, setState] = useState<RecordingState>({ status: 'requesting', duration: 0 });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // Cleanup on unmount
@@ -226,18 +226,12 @@ export function VideoRecorder({
     }
   }, [question, declaredAnswer, state.duration, minDurationMs, maxDurationMs, router]);
 
-  // Render guards
-  if (showConsent) {
-    return (
-      <ConsentDisclaimer
-        onAccept={() => {
-          setShowConsent(false);
-          void requestPermissions();
-        }}
-        onCancel={() => router.back()}
-      />
-    );
-  }
+  // Auto-request camera/mic permissions on mount. The old "BEFORE YOU RECORD"
+  // checklist popup was removed — Terms/Privacy are linked from the footer.
+  useEffect(() => {
+    void requestPermissions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (state.status === 'error') {
     return (
