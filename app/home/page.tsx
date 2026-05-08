@@ -6,7 +6,9 @@ import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/Button';
 import { GameBanner } from '@/components/layout/GameBanner';
 import { GameCard } from '@/components/layout/GameCard';
+import { StreakBadge } from '@/components/layout/StreakBadge';
 import { ALL_GAME_TYPES } from '@/lib/game-types';
+import { recordDailyPlay } from '@/lib/xp';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -17,6 +19,10 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const user = await requireUser('/home');
   const supabase = await createClient();
+
+  // Daily login: bumps streak + grants the once-per-day XP bonus.
+  // Idempotent — safe to call on every visit.
+  const dailyState = await recordDailyPlay(supabase);
 
   const { data: friendIds } = await supabase
     .from('friendships')
@@ -36,12 +42,18 @@ export default async function HomePage() {
 
   const featured = ALL_GAME_TYPES.slice(0, 3);
 
+  const streak = dailyState?.current_streak ?? 0;
+  const level = dailyState?.current_level ?? 1;
+  const totalXp = dailyState?.total_xp ?? 0;
+
   return (
     <main className="min-h-screen flex flex-col">
       <div className="tape-stripes h-3 w-full" />
 
       <div className="flex-1 px-6 py-6 max-w-md mx-auto w-full">
         <GameBanner variant="hero" subtitle="Spot the cap. Become the cap." />
+
+        <StreakBadge currentStreak={streak} level={level} totalXp={totalXp} />
 
         {/* Quick action chips */}
         <div className="grid grid-cols-3 gap-2 mb-6">

@@ -8,6 +8,7 @@ import { analyzeLinguistic } from '@/lib/analysis/linguistic';
 import { aggregateScore } from '@/lib/analysis/scoring';
 import { calculateCost, logCost } from '@/lib/analysis/cost';
 import { rateLimit, HOUR_MS } from '@/lib/rate-limit';
+import { awardXpForUser, XP_VALUES } from '@/lib/xp';
 
 // Hume + Whisper need Node buffers, not edge runtime. Bump the timeout —
 // Hume batch jobs can take 20-40s on top of upload + Claude.
@@ -149,6 +150,11 @@ export async function POST(req: NextRequest) {
         inputTokens: linguistic.inputTokens,
         outputTokens: linguistic.outputTokens,
       }),
+    });
+
+    void awardXpForUser(admin, user.id, 'game_complete', XP_VALUES.game_complete, {
+      gameId,
+      mode: 'text',
     });
 
     return NextResponse.json({
@@ -313,6 +319,11 @@ export async function POST(req: NextRequest) {
     );
   }
   await Promise.allSettled(costPromises);
+
+  void awardXpForUser(admin, user.id, 'game_complete', XP_VALUES.game_complete, {
+    gameId,
+    mode: 'video',
+  });
 
   return NextResponse.json({
     success: true,

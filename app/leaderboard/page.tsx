@@ -3,41 +3,35 @@ import Image from 'next/image';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/Button';
+import { LeaderboardRowItem } from '@/components/layout/LeaderboardRow';
+import { getFriendsLeaderboard, type LeaderboardPeriod } from '@/lib/xp';
 
 export const metadata: Metadata = {
   title: 'Leaderboard',
   description: 'Top truthers and cap-callers on Truth or Cap. See who outranks the rest.',
 };
 
-interface LeaderboardRow {
+interface PublicRow {
   id: string;
   username: string;
   avatar_url: string | null;
   current_streak: number;
-  total_invites_redeemed: number;
 }
 
-export default async function LeaderboardPage() {
+type Scope = 'friends' | 'public';
+
+interface PageProps {
+  searchParams?: Promise<{ scope?: string; period?: string }>;
+}
+
+export default async function LeaderboardPage({ searchParams }: PageProps) {
+  const sp = (await searchParams) ?? {};
+  const scope: Scope = sp.scope === 'public' ? 'public' : 'friends';
+  const period: LeaderboardPeriod = sp.period === 'all_time' ? 'all_time' : 'weekly';
+
   const supabase = await createClient();
-
-  // Public top 50 — anyone can see this. Order by current_streak desc as a
-  // best-effort "truther" ranking using only public profile columns.
-  const { data: topRows } = await supabase
-    .from('profiles')
-    .select('id, username, avatar_url, current_streak, total_invites_redeemed')
-    .eq('is_public', true)
-    .order('current_streak', { ascending: false })
-    .order('total_invites_redeemed', { ascending: false })
-    .limit(50);
-
-  const top: LeaderboardRow[] = topRows ?? [];
-
-  // Optional: if a user is signed in, highlight their position.
   const { data: userData } = await supabase.auth.getUser();
   const currentUserId = userData.user?.id ?? null;
-  const myRankIndex = currentUserId
-    ? top.findIndex((r) => r.id === currentUserId)
-    : -1;
 
   return (
     <main className="min-h-screen flex flex-col pb-24">
@@ -50,93 +44,231 @@ export default async function LeaderboardPage() {
           Home
         </Link>
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">
-          Top 50 truthers
+          Leaderboard
         </p>
         <h1 className="font-display text-5xl font-black leading-[0.9] mb-6">
           Who calls<br />
           <span className="italic font-light">your bluff?</span>
         </h1>
 
-        {top.length > 0 ? (
-          <ol className="space-y-2">
-            {top.map((row, i) => {
-              const isMe = currentUserId === row.id;
-              return (
-                <li
-                  key={row.id}
-                  className={
-                    'border-2 p-3 flex items-center gap-3 ' +
-                    (isMe ? 'border-mustard bg-mustard/10' : 'border-line')
-                  }
-                >
-                  <span className="font-display text-2xl font-black w-8 text-mustard">
-                    #{i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-display text-lg truncate">
-                      @{row.username}
-                      {isMe ? (
-                        <span className="ml-2 font-mono text-[10px] tracking-widest uppercase text-mustard">
-                          you
-                        </span>
-                      ) : null}
-                    </p>
-                    <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted">
-                      streak {row.current_streak} ·{' '}
-                      {row.total_invites_redeemed} invites redeemed
-                    </p>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <div className="text-center py-8">
-            <Image
-              src="/illustrations/leaderboard-empty.svg"
-              alt=""
-              width={240}
-              height={200}
-              className="mx-auto mb-4"
-              unoptimized
-            />
-            <p className="font-mono text-xs tracking-widest uppercase text-fg-muted">
-              No rankings yet — be the first.
-            </p>
-          </div>
-        )}
+        {/* Scope tabs (Friends / Public) — Friends needs auth. */}
+        <div className="grid grid-cols-2 gap-2 mb-3 p-1 border-2 border-line rounded-xl bg-bg-card">
+          <ScopeTab scope="friends" current={scope} period={period}>
+            Friends
+          </ScopeTab>
+          <ScopeTab scope="public" current={scope} period={period}>
+            Public
+          </ScopeTab>
+        </div>
 
-        {!currentUserId ? (
-          <div className="mt-10 border-2 border-line p-5 text-center">
-            <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-2">
-              Not on the board?
-            </p>
-            <p className="font-display text-2xl font-black leading-tight mb-4">
-              Sign in to claim<br />
-              <span className="italic font-light">your rank.</span>
-            </p>
-            <Link href="/auth/sign-up">
-              <Button size="lg">Create account</Button>
-            </Link>
-            <p className="mt-3 font-mono text-[10px] tracking-widest uppercase text-fg-muted">
-              Have one already?{' '}
-              <Link
-                href="/auth/sign-in"
-                className="underline underline-offset-4 hover:text-fg"
-              >
-                Sign in
-              </Link>
-            </p>
-          </div>
-        ) : myRankIndex === -1 ? (
-          <div className="mt-10 border-2 border-line p-5 text-center">
-            <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted">
-              You haven&apos;t cracked the top 50 yet. Keep playing.
-            </p>
-          </div>
-        ) : null}
+        {scope === 'friends' ? (
+          <FriendsLeaderboard
+            period={period}
+            signedIn={Boolean(currentUserId)}
+          />
+        ) : (
+          <PublicLeaderboard currentUserId={currentUserId} />
+        )}
       </div>
       <div className="tape-stripes h-3 w-full" />
     </main>
+  );
+}
+
+function ScopeTab({
+  scope,
+  current,
+  period,
+  children,
+}: {
+  scope: Scope;
+  current: Scope;
+  period: LeaderboardPeriod;
+  children: React.ReactNode;
+}) {
+  const active = scope === current;
+  const href = `/leaderboard?scope=${scope}${scope === 'friends' ? `&period=${period}` : ''}`;
+  return (
+    <Link
+      href={href}
+      className={
+        'text-center py-2 rounded-lg font-mono text-[10px] tracking-widest uppercase transition-colors ' +
+        (active
+          ? 'bg-fg text-bg font-black'
+          : 'text-fg-muted hover:text-fg')
+      }
+      aria-current={active ? 'page' : undefined}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function PeriodTab({
+  period,
+  current,
+}: {
+  period: LeaderboardPeriod;
+  current: LeaderboardPeriod;
+}) {
+  const active = period === current;
+  return (
+    <Link
+      href={`/leaderboard?scope=friends&period=${period}`}
+      className={
+        'text-center py-2 px-3 rounded-lg font-mono text-[10px] tracking-widest uppercase transition-colors ' +
+        (active
+          ? 'bg-mustard text-bg font-black'
+          : 'text-fg-muted hover:text-fg')
+      }
+      aria-current={active ? 'page' : undefined}
+    >
+      {period === 'weekly' ? 'This week' : 'All time'}
+    </Link>
+  );
+}
+
+async function FriendsLeaderboard({
+  period,
+  signedIn,
+}: {
+  period: LeaderboardPeriod;
+  signedIn: boolean;
+}) {
+  if (!signedIn) {
+    return (
+      <div className="border-2 border-line rounded-2xl p-6 text-center mt-4">
+        <p className="font-display text-2xl font-black leading-tight mb-2">
+          Sign in to see<br />
+          <span className="italic font-light">your circle.</span>
+        </p>
+        <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-4">
+          Friends-only ranking — XP, streaks, levels.
+        </p>
+        <Link href="/auth/sign-up">
+          <Button size="md" fullWidth>Create account</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const supabase = await createClient();
+  const rows = await getFriendsLeaderboard(supabase, period);
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-2 mb-4 p-1 border-2 border-line rounded-xl bg-bg-card">
+        <PeriodTab period="weekly" current={period} />
+        <PeriodTab period="all_time" current={period} />
+      </div>
+
+      {rows.length > 1 ? (
+        <ol className="space-y-2">
+          {rows.map((row, i) => (
+            <li key={row.user_id}>
+              <LeaderboardRowItem
+                rank={i + 1}
+                username={row.username}
+                avatarUrl={row.avatar_url}
+                level={row.current_level}
+                currentStreak={row.current_streak}
+                scoreLabel={period === 'weekly' ? 'XP this week' : 'XP all time'}
+                scoreValue={(period === 'weekly' ? row.weekly_xp : row.total_xp).toLocaleString()}
+                isSelf={row.is_self}
+                href={row.is_self ? '/settings' : `/perfil/${row.username}`}
+              />
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <div className="border-2 border-line rounded-2xl p-6 text-center">
+          <Image
+            src="/illustrations/leaderboard-empty.svg"
+            alt=""
+            width={200}
+            height={160}
+            className="mx-auto mb-3"
+            unoptimized
+          />
+          <p className="font-display text-2xl font-black leading-tight mb-2">
+            No circle yet.
+          </p>
+          <p className="font-body text-sm text-fg-muted mb-4 leading-snug">
+            Add friends to start a private XP race. Streaks, levels, weekly winners.
+          </p>
+          <Link href="/friends/find">
+            <Button size="md" fullWidth>Find friends</Button>
+          </Link>
+        </div>
+      )}
+    </>
+  );
+}
+
+async function PublicLeaderboard({
+  currentUserId,
+}: {
+  currentUserId: string | null;
+}) {
+  const supabase = await createClient();
+  const { data: topRows } = await supabase
+    .from('profiles')
+    .select('id, username, avatar_url, current_streak')
+    .eq('is_public', true)
+    .order('current_streak', { ascending: false })
+    .limit(50);
+
+  const top: PublicRow[] = topRows ?? [];
+
+  if (top.length === 0) {
+    return (
+      <div className="text-center py-8 mt-4">
+        <Image
+          src="/illustrations/leaderboard-empty.svg"
+          alt=""
+          width={240}
+          height={200}
+          className="mx-auto mb-4"
+          unoptimized
+        />
+        <p className="font-mono text-xs tracking-widest uppercase text-fg-muted">
+          No rankings yet — be the first.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ol className="space-y-2 mt-4">
+      {top.map((row, i) => {
+        const isMe = currentUserId === row.id;
+        return (
+          <li
+            key={row.id}
+            className={
+              'border-2 rounded-xl p-3 flex items-center gap-3 ' +
+              (isMe ? 'border-mustard bg-mustard/10' : 'border-line bg-bg-card')
+            }
+          >
+            <span className="font-display text-2xl font-black w-8 text-center text-mustard">
+              #{i + 1}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-lg truncate">
+                @{row.username}
+                {isMe ? (
+                  <span className="ml-2 font-mono text-[10px] tracking-widest uppercase text-mustard">
+                    you
+                  </span>
+                ) : null}
+              </p>
+              <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted">
+                <span aria-hidden="true">🔥</span> streak {row.current_streak}
+              </p>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

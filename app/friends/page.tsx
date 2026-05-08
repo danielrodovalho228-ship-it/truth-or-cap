@@ -43,6 +43,26 @@ export default async function FriendsPage() {
           <span className="italic font-light">circle.</span>
         </h1>
 
+        <Link
+          href="/leaderboard?scope=friends&period=weekly"
+          className="block border-2 border-line hover:border-fg rounded-2xl p-4 mb-6 bg-gradient-to-br from-[#f59e0b]/10 to-[#ec4899]/10 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-[#f59e0b] to-[#f87171] text-white shrink-0">
+              <span className="text-xl" aria-hidden="true">🏆</span>
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-mustard">
+                Weekly · friends
+              </p>
+              <p className="font-display text-lg font-black leading-tight">
+                See who&apos;s on top
+              </p>
+            </div>
+            <span className="font-display font-black text-2xl leading-none">→</span>
+          </div>
+        </Link>
+
         {(friends?.length ?? 0) > 0 ? (
           <ul className="space-y-2">
             {friends!.map((f) => (

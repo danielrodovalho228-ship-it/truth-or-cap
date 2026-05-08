@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceRoleClient, createClient } from '@/lib/supabase/server';
+import { awardXpForUser, XP_VALUES } from '@/lib/xp';
 
 export const runtime = 'nodejs';
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   const admin = createServiceRoleClient();
   const { data: round } = await admin
     .from('room_rounds')
-    .select('id, room_id, prompter_player_id')
+    .select('id, room_id, prompter_player_id, declared_answer')
     .eq('id', roundId)
     .single();
   if (!round) return NextResponse.json({ error: 'Round not found' }, { status: 404 });
@@ -57,5 +58,64 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ round: existing, alreadyRevealed: true });
   }
 
+  // Award XP. Best-effort — never block reveal on XP write.
+  awardRoundXp(admin, round.id, round.prompter_player_id, round.declared_answer)
+    .catch((e) => console.error('[reveal] xp award failed:', e));
+
   return NextResponse.json({ round: updated });
+}
+
+async function awardRoundXp(
+  admin: ReturnType<typeof createServiceRoleClient>,
+  roundId: string,
+  prompterPlayerId: string | null,
+  declaredAnswer: string | null,
+): Promise<void> {
+  // 1. Game complete → prompter (if logged in).
+  if (prompterPlayerId) {
+    const { data: prompter } = await admin
+      .from('room_players')
+      .select('user_id')
+      .eq('id', prompterPlayerId)
+      .single();
+    if (prompter?.user_id) {
+      await awardXpForUser(
+        admin,
+        prompter.user_id,
+        'game_complete',
+        XP_VALUES.game_complete,
+        { roundId, role: 'prompter' },
+      );
+    }
+  }
+
+  // 2. Correct verdict → every voter who guessed declared_answer.
+  if (declaredAnswer !== 'truth' && declaredAnswer !== 'cap') return;
+
+  const { data: votes } = await admin
+    .from('round_votes')
+    .select('voter_player_id, vote')
+    .eq('round_id', roundId);
+  if (!votes || votes.length === 0) return;
+
+  const correctVoterIds = votes
+    .filter((v) => v.vote === declaredAnswer)
+    .map((v) => v.voter_player_id);
+  if (correctVoterIds.length === 0) return;
+
+  const { data: players } = await admin
+    .from('room_players')
+    .select('id, user_id')
+    .in('id', correctVoterIds);
+
+  for (const p of players ?? []) {
+    if (!p.user_id) continue;
+    await awardXpForUser(
+      admin,
+      p.user_id,
+      'correct_verdict',
+      XP_VALUES.correct_verdict,
+      { roundId, role: 'voter' },
+    );
+  }
 }

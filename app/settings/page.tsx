@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { requireProfile } from '@/lib/auth/guard';
+import { createClient } from '@/lib/supabase/server';
 import { getLang } from '@/lib/i18n/server';
 import { t } from '@/lib/i18n/messages';
+import { fetchUserXp } from '@/lib/xp';
+import { XpBar } from '@/components/layout/XpBar';
 import { LanguageToggle } from './LanguageToggle';
 
 export const metadata: Metadata = {
@@ -13,6 +16,8 @@ export const metadata: Metadata = {
 export default async function SettingsPage() {
   const { user, profile } = await requireProfile('/settings');
   const lang = await getLang();
+  const supabase = await createClient();
+  const xp = await fetchUserXp(supabase, user.id);
 
   return (
     <main className="min-h-screen flex flex-col">
@@ -47,10 +52,27 @@ export default async function SettingsPage() {
           ) : null}
         </div>
 
+        <XpBar
+          totalXp={xp?.total_xp ?? 0}
+          currentStreak={xp?.current_streak ?? profile.current_streak ?? 0}
+          longestStreak={xp?.longest_streak ?? 0}
+        />
+
+        <Link
+          href="/leaderboard"
+          className="block border-2 border-line hover:border-fg p-3 mb-6 transition-colors rounded-xl"
+        >
+          <p className="font-display text-base font-black uppercase tracking-tight">
+            {lang === 'pt' ? 'Ranking de amigos' : 'Friends leaderboard'}
+          </p>
+          <p className="font-mono text-[10px] tracking-widest uppercase opacity-70 mt-0.5">
+            {lang === 'pt' ? 'Veja quem está na frente' : 'See who outranks the rest'}
+          </p>
+        </Link>
+
         <div className="space-y-3 mb-8">
           <Row label={t(lang, 'settings.row.username')} value={`@${profile.username}`} />
           <Row label={t(lang, 'settings.row.email')} value={user.email ?? '—'} />
-          <Row label={t(lang, 'settings.row.streak')} value={`${profile.current_streak} ${t(lang, 'settings.streak.daysSuffix')}`} />
         </div>
 
         <div className="mb-4">
