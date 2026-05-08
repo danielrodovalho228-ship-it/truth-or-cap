@@ -12,6 +12,7 @@ import { ShareSheet } from '@/components/result/ShareSheet';
 import { PlayCTA } from '@/components/result/PlayCTA';
 import type { AnalysisReason, GameMode, Vote, ViewState } from '@/lib/types';
 import type { VoteCounts } from '@/hooks/useRealtimeVotes';
+import type { Lang } from '@/lib/i18n/messages';
 
 interface GameSummary {
   id: string;
@@ -36,6 +37,7 @@ interface ResultClientProps {
   viewState: ViewState;
   initialCounts: VoteCounts;
   initialUserVote: Vote | null;
+  lang: Lang;
 }
 
 export function ResultClient({
@@ -44,6 +46,7 @@ export function ResultClient({
   viewState,
   initialCounts,
   initialUserVote,
+  lang,
 }: ResultClientProps) {
   // FIRST_VISITOR sees a gated flow: must vote BEFORE we reveal SUS LEVEL.
   // OWNER + RETURNING_VIEWER see everything immediately.
@@ -161,7 +164,9 @@ export function ResultClient({
         username={game.player_username}
         question={game.question}
         susLevel={analysis?.sus_level ?? 50}
+        declaredAnswer={game.declared_answer}
         url={shareUrl}
+        lang={lang}
       />
     </main>
   );

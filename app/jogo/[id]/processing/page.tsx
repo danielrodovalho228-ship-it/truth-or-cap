@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth/guard';
 import { createClient } from '@/lib/supabase/server';
+import { getLang } from '@/lib/i18n/server';
 import { ProcessingClient } from './ProcessingClient';
 
 interface PageProps {
@@ -24,6 +25,7 @@ export default async function ProcessingPage({ params }: PageProps) {
   if (game.player_id !== user.id) notFound();
 
   const mode = (game.mode as 'text' | 'video' | undefined) ?? 'video';
+  const lang = await getLang();
 
-  return <ProcessingClient gameId={game.id} question={game.question} mode={mode} />;
+  return <ProcessingClient gameId={game.id} question={game.question} mode={mode} lang={lang} />;
 }

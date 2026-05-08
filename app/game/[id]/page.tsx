@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { detectViewState } from '@/lib/result-state';
+import { getLang } from '@/lib/i18n/server';
 import { ResultClient } from './ResultClient';
 import type { AnalysisReason, Vote } from '@/lib/types';
 
@@ -68,6 +69,7 @@ export default async function GamePage({ params }: PageProps) {
   if (!game) notFound();
 
   const { data: { user } } = await supabase.auth.getUser();
+  const lang = await getLang();
   const viewState = detectViewState({
     authedUserId: user?.id ?? null,
     ownerId: game.player_id,
@@ -119,6 +121,7 @@ export default async function GamePage({ params }: PageProps) {
       viewState={viewState}
       initialCounts={counts}
       initialUserVote={userVote}
+      lang={lang}
     />
   );
 }
