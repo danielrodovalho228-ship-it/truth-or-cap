@@ -19,7 +19,7 @@ import { NewGameClient } from './NewGameClient';
 
 export const metadata: Metadata = {
   title: 'New game · Truth or Cap',
-  description: 'Pick a question, record your 30-second answer, send to friends.',
+  description: 'Pick a question, type your answer, send it to friends to vote on.',
   robots: { index: false },
 };
 

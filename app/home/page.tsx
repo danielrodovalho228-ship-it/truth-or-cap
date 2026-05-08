@@ -141,10 +141,10 @@ export default async function HomePage() {
                 No friend games yet.
               </p>
               <p className="font-body text-sm text-fg-muted mb-4 leading-snug">
-                Add friends to see their plays here. Or record your own to start.
+                Add friends to see their plays here. Or start your own to break the ice.
               </p>
               <div className="flex flex-col gap-2">
-                <Link href="/game/select"><Button size="md" fullWidth>Record a game</Button></Link>
+                <Link href="/game/select"><Button size="md" fullWidth>Start a game</Button></Link>
                 <Link href="/friends/find"><Button variant="secondary" size="md" fullWidth>Find friends</Button></Link>
               </div>
             </div>

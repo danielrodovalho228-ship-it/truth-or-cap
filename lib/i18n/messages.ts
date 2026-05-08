@@ -83,6 +83,7 @@ const en: Dict = {
   'select.audience.couples': 'Couples',
   'select.audience.couples.tag': 'Date-night honesty.',
   'select.questionsSuffix': 'questions',
+  'select.typeToPlay': 'type to play',
 
   // Friends (/amigos)
   'friends.back': '← Home',
@@ -179,6 +180,7 @@ const pt: Dict = {
   'select.audience.couples': 'Casais',
   'select.audience.couples.tag': 'Honestidade de casal.',
   'select.questionsSuffix': 'perguntas',
+  'select.typeToPlay': 'digite para jogar',
 
   'friends.back': '← Início',
   'friends.label': 'Rede',

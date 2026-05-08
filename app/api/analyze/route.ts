@@ -77,15 +77,99 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Race-against-double-fire: rely on rate limit (12/h per user) + the
-  // games.analyzed_at column guard. If two requests arrive in the rate
-  // window before either completes, both will run the providers. The
-  // unique constraint on analyses.game_id makes the LATE insert fail
-  // (caught at line 171 below), so cost-bomb is bounded by the rate limit
-  // not by an early claim row that violates schema constraints.
-
-  // Service role for storage download (bucket is private + signed-only).
+  // Service role used downstream — for storage download (video mode) and
+  // for the analyses insert (bypasses RLS).
   const admin = createServiceRoleClient();
+
+  const isTextMode = game.mode === 'text';
+
+  // ---------------------------------------------------------------
+  // TEXT MODE: skip Whisper + Hume entirely. Linguistic only.
+  // ---------------------------------------------------------------
+  if (isTextMode) {
+    const text = (game.text_answer ?? '').trim();
+    if (text.length === 0) {
+      return NextResponse.json({ error: 'No text answer to analyze.' }, { status: 400 });
+    }
+
+    let linguistic = null;
+    try {
+      linguistic = await analyzeLinguistic({
+        transcription: text,
+        question: game.question,
+        declaredAnswer: game.declared_answer,
+        source: 'typed',
+      });
+    } catch (err) {
+      console.error('[analyze] linguistic (text mode) failed:', err);
+      return NextResponse.json(
+        { error: 'Analysis failed — try again in a minute.' },
+        { status: 502 }
+      );
+    }
+
+    // Approximate "duration" from words read aloud — used by aggregateScore
+    // for confidence weighting only. ~2.5 words per second is normal speech.
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    const pseudoDurationMs = Math.max(3_000, Math.round((wordCount / 2.5) * 1000));
+
+    const aggregate = aggregateScore({
+      voice: null,
+      face: null,
+      linguistic,
+      duration_ms: pseudoDurationMs,
+    });
+
+    const processingMs = Date.now() - startTime;
+
+    const { error: insertErr } = await admin.from('analyses').insert({
+      game_id: gameId,
+      sus_level: aggregate.susLevel,
+      voice_stress_score: null,
+      facial_score: null,
+      linguistic_score: linguistic.score,
+      transcription: text,
+      reasons: aggregate.reasons,
+      raw_voice_data: null,
+      raw_facial_data: null,
+      processing_time_ms: processingMs,
+      model_version: 'text_v1',
+    });
+    if (insertErr) {
+      console.error('[analyze] insert failed (text mode):', insertErr);
+      return NextResponse.json({ error: 'Failed to save analysis' }, { status: 500 });
+    }
+
+    void logCost(admin, {
+      user_id: user.id,
+      game_id: gameId,
+      provider: 'claude',
+      cost_usd: calculateCost({
+        provider: 'claude',
+        inputTokens: linguistic.inputTokens,
+        outputTokens: linguistic.outputTokens,
+      }),
+    });
+
+    return NextResponse.json({
+      success: true,
+      gameId,
+      susLevel: aggregate.susLevel,
+      reasons: aggregate.reasons,
+      confidence: aggregate.confidence,
+      processing_time_ms: processingMs,
+      weights: aggregate.weights,
+      mode: 'text',
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // VIDEO MODE (legacy): full Whisper + Hume + Claude pipeline.
+  // ---------------------------------------------------------------
+  if (!game.recording_url || !game.recording_duration_ms) {
+    return NextResponse.json({ error: 'Recording missing for video-mode game.' }, { status: 400 });
+  }
+
   const { data: fileBlob, error: dlErr } = await admin
     .storage
     .from('recordings')
@@ -135,6 +219,7 @@ export async function POST(req: NextRequest) {
         transcription: transcription.text,
         question: game.question,
         declaredAnswer: game.declared_answer,
+        source: 'spoken',
       });
     } catch (err) {
       console.error('[analyze] linguistic failed:', err);

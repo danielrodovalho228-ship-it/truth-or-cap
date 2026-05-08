@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Video } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { pickRandomQuestion } from '@/lib/questions';
 
@@ -37,7 +37,7 @@ export function PlayCTA({ opponentUsername, opponentSusLevel, fromGameId }: Play
         @{opponentUsername} — {verdict}
       </p>
       <p className="font-display text-base text-fg-muted leading-snug mb-4">
-        Beat their score. Same 30 seconds. Different question.
+        Beat their score. Type your answer. Different question.
       </p>
       <p className="border-l-2 border-tape pl-3 py-1 mb-4">
         <span className="font-mono text-[10px] tracking-widest uppercase text-fg-muted block mb-1">
@@ -49,7 +49,7 @@ export function PlayCTA({ opponentUsername, opponentSusLevel, fromGameId }: Play
         href={href}
         className="border-2 border-fg bg-fg text-bg px-6 py-4 font-display text-xl font-black uppercase tracking-tight hover:bg-bg hover:text-fg transition-colors inline-flex items-center gap-2 w-full justify-center"
       >
-        <Video className="w-5 h-5" /> Record · 30 sec
+        <Send className="w-5 h-5" /> Type your answer
       </Link>
     </motion.section>
   );

@@ -114,7 +114,7 @@ export default async function SelectGamePage({
               <GameCard
                 game={gt}
                 href={`/jogo/novo?type=${gt.id}&audience=${selected}`}
-                meta={`${gt.questions.length} ${t(lang, 'select.questionsSuffix')} · ~${Math.round(gt.defaultDurationMs / 1000)}s`}
+                meta={`${gt.questions.length} ${t(lang, 'select.questionsSuffix')} · ${t(lang, 'select.typeToPlay')}`}
               />
             </li>
           ))}

@@ -56,14 +56,18 @@ export interface VoiceBaseline {
 // Game
 // ============================================================================
 
+export type GameMode = 'text' | 'video';
+
 export interface Game {
   id: string;
   player_id: string;
   player_username: string;
   question: string;
   declared_answer: Vote;
-  recording_url: string;
-  recording_duration_ms: number;
+  mode: GameMode;
+  text_answer: string | null;
+  recording_url: string | null;
+  recording_duration_ms: number | null;
   created_at: string;
   expires_at: string;
   is_public: boolean;

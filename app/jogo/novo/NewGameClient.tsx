@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { GameBanner } from '@/components/layout/GameBanner';
 import { motion } from 'framer-motion';
-import { Dices, Video } from 'lucide-react';
+import { Dices, Send } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { VideoRecorder } from '@/components/recorder/VideoRecorder';
+import { TextAnswerForm } from '@/components/recorder/TextAnswerForm';
 import { pickQuestionFor, type GameType, type GameTheme } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 import type { Vote } from '@/lib/types';
@@ -21,7 +21,7 @@ interface NewGameClientProps {
   theme: GameTheme;
 }
 
-type Phase = 'setup' | 'record';
+type Phase = 'setup' | 'answer';
 
 export function NewGameClient({
   initialQuestion,
@@ -30,19 +30,18 @@ export function NewGameClient({
   fromGameId,
   gameTypeId,
   gameTypeLabel,
-  defaultDurationMs,
   theme,
 }: NewGameClientProps) {
   const [question, setQuestion] = useState(initialQuestion);
   const [declaredAnswer, setDeclaredAnswer] = useState<Vote | null>(null);
   const [phase, setPhase] = useState<Phase>('setup');
 
-  if (phase === 'record' && declaredAnswer) {
+  if (phase === 'answer' && declaredAnswer) {
     return (
-      <VideoRecorder
+      <TextAnswerForm
         question={question}
         declaredAnswer={declaredAnswer}
-        maxDurationMs={defaultDurationMs}
+        resultBasePath="/jogo"
       />
     );
   }
@@ -56,20 +55,21 @@ export function NewGameClient({
           variant="hero"
           theme={theme}
           title={gameTypeLabel}
-          subtitle={opponent ? `Challenge from @${opponent}` : 'Record your answer'}
+          subtitle={opponent ? `Desafio de @${opponent}` : 'Digite sua resposta'}
         />
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">
-          {opponent ? `Challenge from @${opponent}` : gameTypeLabel}
+          {opponent ? `Desafio de @${opponent}` : gameTypeLabel}
         </p>
 
         <h1 className="font-display text-5xl md:text-6xl font-black leading-[0.9] tracking-tight mb-3">
-          Answer.<br />
-          <span className="italic font-light">Maybe truthfully.</span>
+          Responda.<br />
+          <span className="italic font-light">Talvez com a verdade.</span>
         </h1>
 
         <p className="font-body text-base text-fg-muted leading-relaxed mb-6 max-w-sm">
-          Pick a question, declare your answer (truth or cap), then record up to 30 seconds. The AI
-          analyzes voice, face, and language. Friends vote. Lies get exposed.
+          Escolha uma pergunta, declare verdade ou cap, e digite sua resposta. A IA analisa
+          seu texto procurando hesitação, frases defensivas e contradições. Os amigos
+          votam. Mentiras aparecem.
         </p>
 
         {/* Question card with themed accent */}
@@ -80,7 +80,7 @@ export function NewGameClient({
             style={{ backgroundImage: theme.gradient }}
           />
           <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted mb-3">
-            Question
+            Pergunta
           </p>
           <p className="font-display text-2xl leading-snug">&ldquo;{question}&rdquo;</p>
         </div>
@@ -90,13 +90,13 @@ export function NewGameClient({
             onClick={() => setQuestion(pickQuestionFor(gameTypeId, question))}
             className="self-center font-mono text-[10px] tracking-widest uppercase text-fg-muted hover:text-fg inline-flex items-center gap-2 mb-7"
           >
-            <Dices className="w-3 h-3" /> Different question
+            <Dices className="w-3 h-3" /> Outra pergunta
           </button>
         )}
 
         {/* Truth / Cap toggle */}
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-fg-muted mb-3">
-          Your declared answer
+          Sua declaração
         </p>
         <div className="grid grid-cols-2 gap-3 mb-3">
           <button
@@ -127,12 +127,12 @@ export function NewGameClient({
           </button>
         </div>
         <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-7 leading-relaxed">
-          What you claim. The AI + your friends decide if your face/voice agrees.
+          O que você afirma. A IA lê o que você escreve. Os amigos decidem se acreditam.
         </p>
 
         {/* Start CTA */}
         <Button
-          onClick={() => setPhase('record')}
+          onClick={() => setPhase('answer')}
           size="xl"
           fullWidth
           disabled={!declaredAnswer}
@@ -140,16 +140,16 @@ export function NewGameClient({
         >
           {declaredAnswer ? (
             <span className="inline-flex items-center gap-2 justify-center">
-              <Video className="w-5 h-5" /> Record · 30 sec
+              <Send className="w-5 h-5" /> Digitar resposta
             </span>
           ) : (
-            'Pick truth or cap →'
+            'Escolha truth ou cap →'
           )}
         </Button>
 
         {fromGameId ? (
           <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted text-center mt-4">
-            Returning a challenge from @{opponent}
+            Devolvendo um desafio de @{opponent}
           </p>
         ) : null}
 
@@ -160,7 +160,7 @@ export function NewGameClient({
           transition={{ delay: 0.6 }}
           className="font-mono text-[10px] tracking-widest uppercase text-fg-muted text-center mt-4"
         >
-          Entertainment only · Not a real lie detector
+          Apenas entretenimento · Não é um detector real
         </motion.p>
       </div>
 

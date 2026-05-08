@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Dices, Video } from 'lucide-react';
+import { Dices, Send } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { GameBanner } from '@/components/layout/GameBanner';
-import { VideoRecorder } from '@/components/recorder/VideoRecorder';
+import { TextAnswerForm } from '@/components/recorder/TextAnswerForm';
 import { pickQuestionFor, type GameType, type GameTheme } from '@/lib/game-types';
 import { cn } from '@/lib/utils';
 import type { Vote } from '@/lib/types';
@@ -21,7 +21,7 @@ interface NewGameClientProps {
   theme: GameTheme;
 }
 
-type Phase = 'setup' | 'record';
+type Phase = 'setup' | 'answer';
 
 export function NewGameClient({
   initialQuestion,
@@ -30,19 +30,18 @@ export function NewGameClient({
   fromGameId,
   gameTypeId,
   gameTypeLabel,
-  defaultDurationMs,
   theme,
 }: NewGameClientProps) {
   const [question, setQuestion] = useState(initialQuestion);
   const [declaredAnswer, setDeclaredAnswer] = useState<Vote | null>(null);
   const [phase, setPhase] = useState<Phase>('setup');
 
-  if (phase === 'record' && declaredAnswer) {
+  if (phase === 'answer' && declaredAnswer) {
     return (
-      <VideoRecorder
+      <TextAnswerForm
         question={question}
         declaredAnswer={declaredAnswer}
-        maxDurationMs={defaultDurationMs}
+        resultBasePath="/game"
       />
     );
   }
@@ -56,7 +55,7 @@ export function NewGameClient({
           variant="hero"
           theme={theme}
           title={gameTypeLabel}
-          subtitle={opponent ? `Challenge from @${opponent}` : 'Record your answer'}
+          subtitle={opponent ? `Challenge from @${opponent}` : 'Type your answer'}
         />
         <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-3">
           {opponent ? `Challenge from @${opponent}` : gameTypeLabel}
@@ -68,8 +67,8 @@ export function NewGameClient({
         </h1>
 
         <p className="font-body text-base text-fg-muted leading-relaxed mb-8 max-w-sm">
-          Pick a question, declare your answer (truth or cap), then record up to 30 seconds. The AI
-          analyzes voice, face, and language. Friends vote. Lies get exposed.
+          Pick a question, declare truth or cap, then type your answer. The AI scans your
+          words for hedging, defensive phrases, and tells. Friends vote. Lies get exposed.
         </p>
 
         {/* Question card with themed accent */}
@@ -127,12 +126,12 @@ export function NewGameClient({
           </button>
         </div>
         <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted mb-7 leading-relaxed">
-          What you claim. The AI + your friends decide if your face/voice agrees.
+          What you claim. The AI reads what you write. Friends vote on whether to believe you.
         </p>
 
         {/* Start CTA */}
         <Button
-          onClick={() => setPhase('record')}
+          onClick={() => setPhase('answer')}
           size="xl"
           fullWidth
           disabled={!declaredAnswer}
@@ -140,7 +139,7 @@ export function NewGameClient({
         >
           {declaredAnswer ? (
             <span className="inline-flex items-center gap-2 justify-center">
-              <Video className="w-5 h-5" /> Record · 30 sec
+              <Send className="w-5 h-5" /> Type your answer
             </span>
           ) : (
             'Pick truth or cap →'

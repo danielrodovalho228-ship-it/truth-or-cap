@@ -14,7 +14,7 @@ export default async function ProcessingPage({ params }: PageProps) {
   const supabase = await createClient();
   const { data: game } = await supabase
     .from('games')
-    .select('id, player_id, question, declared_answer, recording_duration_ms')
+    .select('id, player_id, question, declared_answer, mode, recording_duration_ms')
     .eq('id', id)
     .single();
 
@@ -23,5 +23,7 @@ export default async function ProcessingPage({ params }: PageProps) {
   // to /game/[id] which gates on viewState.
   if (game.player_id !== user.id) notFound();
 
-  return <ProcessingClient gameId={game.id} question={game.question} />;
+  const mode = (game.mode as 'text' | 'video' | undefined) ?? 'video';
+
+  return <ProcessingClient gameId={game.id} question={game.question} mode={mode} />;
 }

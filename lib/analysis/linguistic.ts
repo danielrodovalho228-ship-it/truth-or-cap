@@ -16,12 +16,16 @@ export interface LinguisticAnalysis {
   outputTokens: number;
 }
 
-const SYSTEM_PROMPT = 'You are a linguistic analyst evaluating verbal cues in a spoken response. This is for an entertainment game called "Truth or Cap" - output a fun "sus level" score, NOT a real lie detection verdict.\n\nAnalyze for these linguistic signals:\n1. Hedging language ("maybe", "kind of", "I think")\n2. Excessive qualifiers / over-explanation\n3. Distancing language (avoiding "I", using passive voice)\n4. Inconsistencies in details\n5. Defensive phrases ("honestly", "to be honest", "trust me")\n6. Tense shifts (past -> present unexpectedly)\n7. Lack of specific details\n8. Repetition / hesitation markers ("um", "uh", "you know")\n\nOutput JSON ONLY (no preamble, no code fences):\n{ "score": <0-100>, "signals": [ {"signal": "hedging", "weight": 0.0-1.0, "evidence": "exact quote"} ] }\n\nIf the transcription is empty or too short to analyze, return {"score": 0, "signals": []}.';
+const SPOKEN_PROMPT = 'You are a linguistic analyst evaluating verbal cues in a spoken response. This is for an entertainment game called "Truth or Cap" - output a fun "sus level" score, NOT a real lie detection verdict.\n\nAnalyze for these linguistic signals:\n1. Hedging language ("maybe", "kind of", "I think")\n2. Excessive qualifiers / over-explanation\n3. Distancing language (avoiding "I", using passive voice)\n4. Inconsistencies in details\n5. Defensive phrases ("honestly", "to be honest", "trust me")\n6. Tense shifts (past -> present unexpectedly)\n7. Lack of specific details\n8. Repetition / hesitation markers ("um", "uh", "you know")\n\nOutput JSON ONLY (no preamble, no code fences):\n{ "score": <0-100>, "signals": [ {"signal": "hedging", "weight": 0.0-1.0, "evidence": "exact quote"} ] }\n\nIf the transcription is empty or too short to analyze, return {"score": 0, "signals": []}.';
+
+const TYPED_PROMPT = 'You are a linguistic analyst evaluating a TYPED written answer. This is for an entertainment game called "Truth or Cap" - output a fun "sus level" score, NOT a real lie detection verdict.\n\nThe user typed the answer (no audio, no facial cues). Focus only on textual tells. Analyze for:\n1. Hedging language ("maybe", "kind of", "I think", "probably")\n2. Excessive qualifiers / over-explanation for a simple question\n3. Distancing language (avoiding "I", passive voice)\n4. Inconsistencies or contradictions\n5. Defensive phrases ("honestly", "to be honest", "trust me", "I swear")\n6. Tense shifts (past -> present unexpectedly)\n7. Vagueness or lack of concrete detail\n8. Over-formal or stilted phrasing for an off-the-cuff question\n\nDo NOT score for "um", "uh", or other speech disfluencies — this is typed text.\n\nOutput JSON ONLY (no preamble, no code fences):\n{ "score": <0-100>, "signals": [ {"signal": "hedging", "weight": 0.0-1.0, "evidence": "exact quote"} ] }\n\nIf the answer is empty or too short to analyze, return {"score": 0, "signals": []}.';
 
 export async function analyzeLinguistic(input: {
   transcription: string;
   question: string;
   declaredAnswer: 'truth' | 'cap';
+  /** 'typed' = user wrote it (text-mode game), 'spoken' = Whisper transcript. */
+  source?: 'typed' | 'spoken';
 }): Promise<LinguisticAnalysis> {
   if (!claude) throw new Error('ANTHROPIC_API_KEY not configured');
 
@@ -29,17 +33,21 @@ export async function analyzeLinguistic(input: {
     return { score: 0, signals: [], inputTokens: 0, outputTokens: 0 };
   }
 
+  const isTyped = input.source === 'typed';
+  const systemPrompt = isTyped ? TYPED_PROMPT : SPOKEN_PROMPT;
+  const responseLabel = isTyped ? 'Typed answer' : 'Transcription of their response';
+
   const userMessage =
     'Question asked: "' + input.question + '"\n' +
-    'Speaker declared their answer is: ' + input.declaredAnswer.toUpperCase() + '\n' +
-    'Transcription of their response: "' + input.transcription + '"\n\n' +
+    'Player declared their answer is: ' + input.declaredAnswer.toUpperCase() + '\n' +
+    responseLabel + ': "' + input.transcription + '"\n\n' +
     'Analyze and respond with JSON only.';
 
   const response = await claude.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 800,
     temperature: 0,
-    system: SYSTEM_PROMPT,
+    system: systemPrompt,
     messages: [{ role: 'user', content: userMessage }],
   });
 

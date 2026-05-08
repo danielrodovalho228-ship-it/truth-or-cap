@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { QuestionTape } from '@/components/result/QuestionTape';
 import { VideoEvidence } from '@/components/result/VideoEvidence';
+import { TextAnswerEvidence } from '@/components/result/TextAnswerEvidence';
 import { SusLevelReveal } from '@/components/result/SusLevelReveal';
 import { EvidenceCard } from '@/components/result/EvidenceCard';
 import { VoteWidget } from '@/components/result/VoteWidget';
 import { ShareSheet } from '@/components/result/ShareSheet';
 import { PlayCTA } from '@/components/result/PlayCTA';
-import type { AnalysisReason, Vote, ViewState } from '@/lib/types';
+import type { AnalysisReason, GameMode, Vote, ViewState } from '@/lib/types';
 import type { VoteCounts } from '@/hooks/useRealtimeVotes';
 
 interface GameSummary {
@@ -18,7 +19,9 @@ interface GameSummary {
   player_username: string;
   question: string;
   declared_answer: Vote;
-  recording_url: string;
+  mode: GameMode;
+  text_answer: string | null;
+  recording_url: string | null;
   created_at: string;
 }
 
@@ -74,7 +77,14 @@ export function ResultClient({
         />
 
         <div className="px-6">
-          <VideoEvidence gameId={game.id} />
+          {game.mode === 'text' && game.text_answer ? (
+            <TextAnswerEvidence
+              text={game.text_answer}
+              declaredAnswer={game.declared_answer}
+            />
+          ) : (
+            <VideoEvidence gameId={game.id} />
+          )}
         </div>
 
       {/* FIRST_VISITOR: gated vote BEFORE reveal */}

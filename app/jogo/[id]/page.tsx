@@ -103,7 +103,9 @@ export default async function GamePage({ params }: PageProps) {
         player_username: game.player_username,
         question: game.question,
         declared_answer: game.declared_answer as Vote,
-        recording_url: game.recording_url,
+        mode: (game.mode as 'text' | 'video' | undefined) ?? 'video',
+        text_answer: game.text_answer ?? null,
+        recording_url: game.recording_url ?? null,
         created_at: game.created_at,
       }}
       analysis={

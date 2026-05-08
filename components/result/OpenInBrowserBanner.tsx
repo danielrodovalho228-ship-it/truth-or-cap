@@ -28,7 +28,7 @@ export function OpenInBrowserBanner({ inAppBrowser, externalUrl }: OpenInBrowser
           You&apos;re in {LABEL[inAppBrowser]}&apos;s browser
         </p>
         <p className="font-display text-sm leading-snug mb-2">
-          Recording + AI voting need a real browser. Open in Safari/Chrome to play.
+          Voting + AI analysis need a real browser. Open in Safari/Chrome to play.
         </p>
         <a
           href={externalUrl}

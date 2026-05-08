@@ -3,26 +3,35 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Brain, Mic, Video, MessagesSquare } from 'lucide-react';
+import { Brain, Mic, Video, MessagesSquare, Search, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 
 interface ProcessingClientProps {
   gameId: string;
   question: string;
+  mode?: 'text' | 'video';
 }
 
-const STAGES = [
+const VIDEO_STAGES = [
   { icon: Mic, label: 'Listening for voice tension', color: 'text-mustard' },
   { icon: Video, label: 'Reading facial signals', color: 'text-tape' },
   { icon: MessagesSquare, label: 'Parsing what you said', color: 'text-acid' },
   { icon: Brain, label: 'Calculating SUS LEVEL', color: 'text-blood' },
 ];
 
+const TEXT_STAGES = [
+  { icon: FileText, label: 'Reading your statement', color: 'text-mustard' },
+  { icon: Search, label: 'Scanning for hedging', color: 'text-tape' },
+  { icon: MessagesSquare, label: 'Parsing what you wrote', color: 'text-acid' },
+  { icon: Brain, label: 'Calculating SUS LEVEL', color: 'text-blood' },
+];
+
 const POLL_INTERVAL_MS = 1500;
 const TIMEOUT_MS = 90_000;
 
-export function ProcessingClient({ gameId, question }: ProcessingClientProps) {
+export function ProcessingClient({ gameId, question, mode = 'video' }: ProcessingClientProps) {
+  const stages = mode === 'text' ? TEXT_STAGES : VIDEO_STAGES;
   const router = useRouter();
   const [stage, setStage] = useState(0);
   const [elapsed, setElapsed] = useState(0);
@@ -32,11 +41,11 @@ export function ProcessingClient({ gameId, question }: ProcessingClientProps) {
   // Drive the visual stage cycle so it feels alive.
   useEffect(() => {
     const id = window.setInterval(() => {
-      setStage((s) => (s + 1) % STAGES.length);
+      setStage((s) => (s + 1) % stages.length);
       setElapsed(Date.now() - startedAtRef.current);
     }, 2_200);
     return () => window.clearInterval(id);
-  }, []);
+  }, [stages.length]);
 
   // Poll Supabase for the analysis row.
   useEffect(() => {
@@ -95,11 +104,13 @@ export function ProcessingClient({ gameId, question }: ProcessingClientProps) {
         </h1>
 
         <p className="font-body text-sm text-fg-muted leading-relaxed mb-10 max-w-sm">
-          Four AI models inspecting your evidence. Average time 15-30 seconds.
+          {mode === 'text'
+            ? 'Claude is reading your statement for tells. Usually under 10 seconds.'
+            : 'Four AI models inspecting your evidence. Average time 15-30 seconds.'}
         </p>
 
         <div className="space-y-4 w-full max-w-xs mb-10">
-          {STAGES.map((s, i) => {
+          {stages.map((s, i) => {
             const Icon = s.icon;
             const active = stage === i;
             return (
