@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Radio } from 'lucide-react';
 import { requireUser } from '@/lib/auth/guard';
-import { ALL_GAME_TYPES, type Audience } from '@/lib/game-types';
+import { ALL_GAME_TYPES, gameTypeHref, type Audience } from '@/lib/game-types';
 import { GameBanner } from '@/components/layout/GameBanner';
 import { GameCard } from '@/components/layout/GameCard';
 
@@ -105,8 +105,8 @@ export default async function SelectGamePage({
             <li key={t.id}>
               <GameCard
                 game={t}
-                href={`/game/new?type=${t.id}&audience=${selected}`}
-                meta={`${t.questions.length} questions · type to play`}
+                href={gameTypeHref(t.id, { audience: selected, locale: 'en' })}
+                meta={`${t.questions.length} questions · ${t.id === 'would_you_rather' ? 'tap to vote' : 'type to play'}`}
               />
             </li>
           ))}

@@ -4,7 +4,7 @@ import { Radio } from 'lucide-react';
 import { GameBanner } from '@/components/layout/GameBanner';
 import { GameCard } from '@/components/layout/GameCard';
 import { requireUser } from '@/lib/auth/guard';
-import { ALL_GAME_TYPES, type Audience } from '@/lib/game-types';
+import { ALL_GAME_TYPES, gameTypeHref, type Audience } from '@/lib/game-types';
 import { getLang } from '@/lib/i18n/server';
 import { t } from '@/lib/i18n/messages';
 
@@ -113,7 +113,7 @@ export default async function SelectGamePage({
             <li key={gt.id}>
               <GameCard
                 game={gt}
-                href={`/jogo/novo?type=${gt.id}&audience=${selected}`}
+                href={gameTypeHref(gt.id, { audience: selected, locale: 'pt' })}
                 meta={`${gt.questions.length} ${t(lang, 'select.questionsSuffix')} · ${t(lang, 'select.typeToPlay')}`}
               />
             </li>
