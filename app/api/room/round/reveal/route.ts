@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Award XP. Best-effort — never block reveal on XP write.
-  awardRoundXp(admin, round.id, round.prompter_player_id, round.declared_answer)
+  awardRoundXp(admin, round.id, round.room_id, round.prompter_player_id, round.declared_answer)
     .catch((e) => console.error('[reveal] xp award failed:', e));
 
   return NextResponse.json({ round: updated });
@@ -68,28 +68,49 @@ export async function POST(req: NextRequest) {
 async function awardRoundXp(
   admin: ReturnType<typeof createServiceRoleClient>,
   roundId: string,
+  roomId: string,
   prompterPlayerId: string | null,
   declaredAnswer: string | null,
 ): Promise<void> {
-  // 1. Game complete → prompter (if logged in).
-  if (prompterPlayerId) {
-    const { data: prompter } = await admin
+  // Quick-mode rounds have no single prompter — every active player is a
+  // participant. Fan game_complete out to all of them and skip the
+  // correct-verdict path (no declared answer to be right about).
+  if (!prompterPlayerId) {
+    const { data: activePlayers } = await admin
       .from('room_players')
       .select('user_id')
-      .eq('id', prompterPlayerId)
-      .single();
-    if (prompter?.user_id) {
+      .eq('room_id', roomId)
+      .is('left_at', null);
+    for (const p of activePlayers ?? []) {
+      if (!p.user_id) continue;
       await awardXpForUser(
         admin,
-        prompter.user_id,
+        p.user_id,
         'game_complete',
         XP_VALUES.game_complete,
-        { roundId, role: 'prompter' },
+        { roundId, role: 'quick_participant' },
       );
     }
+    return;
   }
 
-  // 2. Correct verdict → every voter who guessed declared_answer.
+  // Classic mode: prompter gets game_complete (if logged in).
+  const { data: prompter } = await admin
+    .from('room_players')
+    .select('user_id')
+    .eq('id', prompterPlayerId)
+    .single();
+  if (prompter?.user_id) {
+    await awardXpForUser(
+      admin,
+      prompter.user_id,
+      'game_complete',
+      XP_VALUES.game_complete,
+      { roundId, role: 'prompter' },
+    );
+  }
+
+  // Correct verdict → every voter who guessed declared_answer.
   if (declaredAnswer !== 'truth' && declaredAnswer !== 'cap') return;
 
   const { data: votes } = await admin
