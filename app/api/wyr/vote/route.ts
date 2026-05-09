@@ -90,9 +90,25 @@ export async function POST(req: NextRequest) {
       voter_id: user?.id ?? null,
       voter_ip_hash: user ? null : hashIp(ip),
     });
-    if (insertRes.error && insertRes.error.code !== '23505') {
-      console.error('[wyr/vote] insert failed:', insertRes.error);
-      return NextResponse.json({ error: 'Vote failed' }, { status: 500 });
+    if (insertRes.error) {
+      if (insertRes.error.code === '23505') {
+        // Race: another request from the same voter inserted between our
+        // UPDATE and INSERT. Re-run the UPDATE so the user's latest pick
+        // (this request) ends up authoritative instead of whichever
+        // arrived first.
+        const retry = await admin
+          .from('wyr_votes')
+          .update({ option_chosen: choice })
+          .eq('question_id', questionId)
+          .eq(voterFilter.col, voterFilter.val);
+        if (retry.error) {
+          console.error('[wyr/vote] retry update failed:', retry.error);
+          return NextResponse.json({ error: 'Vote failed' }, { status: 500 });
+        }
+      } else {
+        console.error('[wyr/vote] insert failed:', insertRes.error);
+        return NextResponse.json({ error: 'Vote failed' }, { status: 500 });
+      }
     }
   }
 
