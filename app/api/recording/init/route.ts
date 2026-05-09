@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
       player_username: profile.username,
       question,
       declared_answer: declaredAnswer,
+      mode: 'video',
       recording_url: fileName,
       recording_duration_ms: durationMs,
     })
