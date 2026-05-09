@@ -170,7 +170,21 @@ export async function joinRoom(
       .eq('room_id', room.id)
       .eq('user_id', params.userId)
       .maybeSingle();
-    if (existing) return { room, player: existing };
+    if (existing) {
+      // If they previously left, mark them active again so they show up in
+      // the lobby and the activePlayerCount cap counts them. Without this
+      // the user appears "stuck out" of their own room after a refresh.
+      if (existing.left_at) {
+        const { data: refreshed } = await supabase
+          .from('room_players')
+          .update({ left_at: null })
+          .eq('id', existing.id)
+          .select()
+          .single();
+        return { room, player: refreshed ?? { ...existing, left_at: null } };
+      }
+      return { room, player: existing };
+    }
   }
 
   const count = await activePlayerCount(supabase, room.id);
