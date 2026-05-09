@@ -38,6 +38,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 
+  // Text-mode games (mode='text') legitimately have no recording — return
+  // a 404 instead of trying to sign a null path, which surfaces a misleading
+  // "Could not sign URL" 500 to the client.
+  if (!game.recording_url) {
+    return NextResponse.json({ error: 'Game has no recording' }, { status: 404 });
+  }
+
   // Bucket is service-role-only; sign the URL with the privileged client.
   const admin = createServiceRoleClient();
   const { data: signed, error: signErr } = await admin.storage
