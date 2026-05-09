@@ -12,10 +12,13 @@ export const metadata: Metadata = {
 };
 
 interface PublicRow {
-  id: string;
+  user_id: string;
   username: string;
   avatar_url: string | null;
+  total_xp: number;
+  current_level: number;
   current_streak: number;
+  longest_streak: number;
 }
 
 type Scope = 'friends' | 'public';
@@ -211,14 +214,13 @@ async function PublicLeaderboard({
   currentUserId: string | null;
 }) {
   const supabase = await createClient();
-  const { data: topRows } = await supabase
-    .from('profiles')
-    .select('id, username, avatar_url, current_streak')
-    .eq('is_public', true)
-    .order('current_streak', { ascending: false })
-    .limit(50);
-
-  const top: PublicRow[] = topRows ?? [];
+  // Pulls the top profiles ranked by total_xp (then streak, then username)
+  // via SECURITY DEFINER so this works for anon visitors. Falls back to an
+  // empty list if the RPC isn't deployed yet.
+  const { data: topRows } = await supabase.rpc('get_public_leaderboard', {
+    p_limit: 50,
+  });
+  const top: PublicRow[] = (topRows as PublicRow[] | null) ?? [];
 
   if (top.length === 0) {
     return (
@@ -241,10 +243,10 @@ async function PublicLeaderboard({
   return (
     <ol className="space-y-2 mt-4">
       {top.map((row, i) => {
-        const isMe = currentUserId === row.id;
+        const isMe = currentUserId === row.user_id;
         return (
           <li
-            key={row.id}
+            key={row.user_id}
             className={
               'border-2 rounded-xl p-3 flex items-center gap-3 ' +
               (isMe ? 'border-mustard bg-mustard/10' : 'border-line bg-bg-card')
@@ -263,7 +265,10 @@ async function PublicLeaderboard({
                 ) : null}
               </p>
               <p className="font-mono text-[10px] tracking-widest uppercase text-fg-muted">
-                <span aria-hidden="true">🔥</span> streak {row.current_streak}
+                Lv {row.current_level} · {row.total_xp.toLocaleString()} XP{' '}
+                <span className="opacity-60">
+                  · <span aria-hidden="true">🔥</span> {row.current_streak}
+                </span>
               </p>
             </div>
           </li>
