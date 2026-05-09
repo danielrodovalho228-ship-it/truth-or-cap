@@ -1,14 +1,13 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Radio, Sparkles, Users, Trophy } from 'lucide-react';
-import { requireUser } from '@/lib/auth/guard';
+import { requireUser, ensureDailyPlay } from '@/lib/auth/guard';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/Button';
 import { GameBanner } from '@/components/layout/GameBanner';
 import { GameCard } from '@/components/layout/GameCard';
 import { StreakBadge } from '@/components/layout/StreakBadge';
 import { ALL_GAME_TYPES } from '@/lib/game-types';
-import { recordDailyPlay } from '@/lib/xp';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -21,8 +20,9 @@ export default async function HomePage() {
   const supabase = await createClient();
 
   // Daily login: bumps streak + grants the once-per-day XP bonus.
-  // Idempotent — safe to call on every visit.
-  const dailyState = await recordDailyPlay(supabase);
+  // requireUser already triggered this — ensureDailyPlay is React.cached so
+  // this just reads the same result without a second RPC.
+  const dailyState = await ensureDailyPlay();
 
   const { data: friendIds } = await supabase
     .from('friendships')
