@@ -8,7 +8,7 @@ import { analyzeLinguistic } from '@/lib/analysis/linguistic';
 import { aggregateScore } from '@/lib/analysis/scoring';
 import { calculateCost, logCost } from '@/lib/analysis/cost';
 import { rateLimit, HOUR_MS } from '@/lib/rate-limit';
-import { awardXpForUser, XP_VALUES } from '@/lib/xp';
+import { awardXp, XP_VALUES } from '@/lib/xp';
 
 // Hume + Whisper need Node buffers, not edge runtime. Bump the timeout —
 // Hume batch jobs can take 20-40s on top of upload + Claude.
@@ -152,7 +152,14 @@ export async function POST(req: NextRequest) {
       }),
     });
 
-    void awardXpForUser(admin, user.id, 'game_complete', XP_VALUES.game_complete, {
+    // Award XP synchronously. Fire-and-forget after `return NextResponse...`
+    // does NOT survive Vercel's serverless teardown — the lambda is killed
+    // once the response is flushed and the in-flight RPC never commits, so
+    // every solo game completion silently dropped its XP. Switching to
+    // `awardXp` (auth.uid()-based, granted to authenticated) lets the
+    // user's own session client own the write so we don't depend on
+    // service-role function permissions either.
+    await awardXp(supabase, 'game_complete', XP_VALUES.game_complete, {
       gameId,
       mode: 'text',
     });
@@ -320,7 +327,9 @@ export async function POST(req: NextRequest) {
   }
   await Promise.allSettled(costPromises);
 
-  void awardXpForUser(admin, user.id, 'game_complete', XP_VALUES.game_complete, {
+  // Award XP synchronously — see text-mode comment above for why this can't
+  // be fire-and-forget on Vercel.
+  await awardXp(supabase, 'game_complete', XP_VALUES.game_complete, {
     gameId,
     mode: 'video',
   });

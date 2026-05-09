@@ -58,9 +58,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ round: existing, alreadyRevealed: true });
   }
 
-  // Award XP. Best-effort — never block reveal on XP write.
-  awardRoundXp(admin, round.id, round.room_id, round.prompter_player_id, round.declared_answer)
-    .catch((e) => console.error('[reveal] xp award failed:', e));
+  // Award XP. Best-effort — swallow failures so XP errors never block the
+  // reveal — but DO await: fire-and-forget after `return` is killed by
+  // Vercel's serverless teardown before the RPCs commit, so every reveal
+  // was silently dropping XP for everyone in the round.
+  try {
+    await awardRoundXp(admin, round.id, round.room_id, round.prompter_player_id, round.declared_answer);
+  } catch (e) {
+    console.error('[reveal] xp award failed:', e);
+  }
 
   return NextResponse.json({ round: updated });
 }
