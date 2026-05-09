@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Heart, PartyPopper, Leaf, Flame, Plus, LogIn, Zap } from 'lucide-react';
+import { Users, Heart, PartyPopper, Leaf, Flame, Plus, LogIn, Zap, X } from 'lucide-react';
 import { GameBanner } from '@/components/layout/GameBanner';
 import { ROUND_OPTIONS, type RoomMode, type RoomSpice } from '@/lib/rooms';
 import { cn } from '@/lib/utils';
@@ -14,7 +14,11 @@ const MODES: { id: RoomMode; label: string; icon: React.ReactNode }[] = [
   { id: 'group',  label: 'Group',  icon: <PartyPopper className="w-6 h-6" /> },
 ];
 
-export function OnlineLobby() {
+interface OnlineLobbyProps {
+  spicyAllowed?: boolean;
+}
+
+export function OnlineLobby({ spicyAllowed = false }: OnlineLobbyProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [mode, setMode] = useState<RoomMode>('group');
@@ -24,6 +28,15 @@ export function OnlineLobby() {
   const [error, setError] = useState<string | null>(null);
   const [maxRounds, setMaxRounds] = useState<number>(5);
   const [quickMode, setQuickMode] = useState<boolean>(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+
+  const handleSpicyClick = () => {
+    if (spicyAllowed) {
+      setSpice('spicy');
+    } else {
+      setShowPremiumModal(true);
+    }
+  };
 
   const handleCreate = () => {
     setError(null);
@@ -165,19 +178,23 @@ export function OnlineLobby() {
               </div>
             </button>
             <button
-              onClick={() => setSpice('spicy')}
+              onClick={handleSpicyClick}
+              aria-haspopup={spicyAllowed ? undefined : 'dialog'}
               className={cn(
                 'border-2 p-4 flex items-center gap-3 transition-colors relative',
                 spice === 'spicy'
                   ? 'border-blood bg-blood/10 text-fg'
-                  : 'border-line text-fg hover:border-blood'
+                  : 'border-line text-fg hover:border-blood',
+                !spicyAllowed && 'cursor-pointer'
               )}
               type="button"
             >
               <Flame className="w-5 h-5 text-blood" />
               <div className="text-left">
                 <div className="font-display font-black uppercase tracking-tight">Spicy</div>
-                <div className="font-mono text-[9px] tracking-widest uppercase text-fg-muted">Premium</div>
+                <div className="font-mono text-[9px] tracking-widest uppercase text-fg-muted">
+                  {spicyAllowed ? 'Premium' : 'Tap to unlock'}
+                </div>
               </div>
               <span className="absolute top-1.5 right-1.5 font-mono text-[9px] tracking-widest font-bold bg-mustard text-bg px-1.5 py-0.5">PRO</span>
             </button>
@@ -290,6 +307,70 @@ export function OnlineLobby() {
       </div>
 
       <div className="tape-stripes h-3 w-full" />
+
+      {showPremiumModal ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="spicy-paywall-title"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setShowPremiumModal(false)}
+        >
+          <div
+            className="relative w-full max-w-md bg-bg border-2 border-fg rounded-2xl shadow-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={() => setShowPremiumModal(false)}
+              className="absolute top-3 right-3 w-8 h-8 inline-flex items-center justify-center rounded-full hover:bg-bg-card text-fg-muted hover:text-fg transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="px-6 pt-8 pb-6 text-center">
+              <div
+                className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
+                style={{ backgroundImage: 'linear-gradient(135deg, #ec4899 0%, #7c3aed 100%)' }}
+                aria-hidden="true"
+              >
+                <Flame className="w-8 h-8 text-white" />
+              </div>
+              <p className="font-mono text-[10px] tracking-[0.4em] uppercase text-mustard mb-2">
+                Premium feature
+              </p>
+              <h2
+                id="spicy-paywall-title"
+                className="font-display text-3xl font-black leading-tight tracking-tight mb-3"
+              >
+                Spicy is for<br />
+                <span className="italic font-light">Pros only.</span>
+              </h2>
+              <p className="font-body text-sm text-fg-muted leading-relaxed mb-6">
+                Adult-only questions, advanced detector, unlimited history, and the gold cap.
+                Cancel anytime.
+              </p>
+
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/premium"
+                  className="w-full border-2 border-mustard bg-mustard text-bg font-display font-black uppercase tracking-tight py-3 inline-flex items-center justify-center hover:bg-bg hover:text-mustard transition-colors rounded-lg"
+                >
+                  See Premium
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowPremiumModal(false)}
+                  className="w-full font-mono text-[10px] tracking-widest uppercase text-fg-muted hover:text-fg py-2"
+                >
+                  Maybe later
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
